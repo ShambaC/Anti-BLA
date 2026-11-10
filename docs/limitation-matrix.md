@@ -7,7 +7,7 @@ Status values: implemented (a rule detects the pattern as stated), partial (a na
 | JS primitive-candidate explosion (literal alternatives) | implemented | `js-literal-alternative-explosion`. Counts literal alternatives from `?:` chains and string concatenation products; threshold 256 (REA `js.primitiveCandidates`). Literal leaves only; a non-literal leaf ends the count. |
 | JS primitive-byte charge | implemented | `js-primitive-byte-charge`. Uses REA's `(len(l)+len(r))*6+2` charge against 1,048,576 bytes. |
 | JS expression depth | implemented | `js-expression-depth`. Threshold 256. Anti-BLA's depth count is not identical to REA's, so confidence is medium. |
-| Getter rings | partial | `js-getter-ring`. Detects only `get a(){return this.b}` cycles. Other recursion shapes are missed. Prediction only (see below). |
+| Getter rings | partial | `js-getter-ring`. Detects only getter cycles whose final statement is `return this.b` (or `this["b"]`). Other recursion shapes are missed. Prediction only (see below). |
 | Alias-selection tables | partial | `js-alias-table`. Object literal with more than 512 properties read through dynamic keys. Confidence low when under 90% of values are literals. Prediction only (see below). |
 | Opaque predicates | partial | `js-constant-guard`. Only guards built purely from numeric/boolean literals are proven constant. Predicates over variables are not evaluated. |
 | Call-graph labyrinths / chaff | partial | `js-duplicate-function-shapes`. Heuristic: at least 50 function bodies sharing one syntax shape and at least 10% of functions. Confidence low. No call graph is built; reachability is never established. |
