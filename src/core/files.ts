@@ -111,36 +111,34 @@ export async function walk(rootArg: string, budget: Budget): Promise<WalkResult>
     return { files: [{ path: root, logicalPath: basename(root), size: rootStat.size }], excluded };
   }
 
-  // Explicit stack (no recursion), processed in sorted order.
-  const stack: { dir: string; depth: number }[] = [{ dir: root, depth: 0 }];
-  while (stack.length > 0) {
-    const { dir, depth } = stack.pop()!;
+  // Explicit stack (no recursion): depth-first, entries visited in sorted code-unit order.
+  const sorted = (xs: string[]) => xs.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const stack: { p: string; depth: number }[] = [];
+  const pushChildren = async (dir: string, depth: number) => {
     let names: string[];
     try {
-      names = (await readdir(dir)).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+      names = sorted(await readdir(dir));
     } catch (e) {
       excluded.push({ path: toLogical(dir), reason: `unreadable directory: ${(e as NodeJS.ErrnoException).code ?? 'error'}` });
+      return;
+    }
+    for (let i = names.length - 1; i >= 0; i--) stack.push({ p: resolve(dir, names[i]!), depth });
+  };
+  await pushChildren(root, 1);
+  while (stack.length > 0) {
+    const { p, depth } = stack.pop()!;
+    const logical = toLogical(p);
+    if (budget.timedOut()) {
+      excluded.push({ path: logical, reason: 'time budget exhausted before visit' });
+      budget.markTruncated('time budget exhausted during traversal');
       continue;
     }
-    const subdirs: string[] = [];
-    for (const name of names) {
-      const p = resolve(dir, name);
-      const logical = toLogical(p);
-      if (budget.timedOut()) {
-        excluded.push({ path: logical, reason: 'time budget exhausted before visit' });
-        budget.markTruncated('time budget exhausted during traversal');
-        continue;
-      }
-      let ls;
-      try {
-        ls = await lstat(p);
-      } catch (e) {
-        excluded.push({ path: logical, reason: `lstat failed: ${(e as NodeJS.ErrnoException).code ?? 'error'}` });
-        continue;
-      }
-      let target = p;
-      let st = ls;
+    let st;
+    try {
+      const ls = await lstat(p);
+      st = ls;
       if (ls.isSymbolicLink()) {
+        let target: string;
         try {
           target = await realpath(p);
           st = await stat(target);
@@ -153,27 +151,29 @@ export async function walk(rootArg: string, budget: Budget): Promise<WalkResult>
           continue;
         }
       }
-      const key = `${st.dev}:${st.ino}`;
-      if (st.ino !== 0 && seen.has(key)) {
-        excluded.push({ path: logical, reason: 'alias of an already-listed file or directory (hard link / symlink)' });
-        continue;
-      }
-      if (st.ino !== 0) seen.add(key);
-      if (st.isDirectory()) {
-        if (depth + 1 > budget.limits.maxDepth) {
-          excluded.push({ path: logical, reason: `max depth ${budget.limits.maxDepth} reached` });
-          budget.markTruncated('max depth reached');
-        } else subdirs.push(target);
-      } else if (st.isFile()) {
-        if (files.length >= budget.limits.maxFiles) {
-          excluded.push({ path: logical, reason: `max files ${budget.limits.maxFiles} reached` });
-          budget.markTruncated('max files reached');
-        } else files.push({ path: target, logicalPath: logical, size: st.size });
-      } else {
-        excluded.push({ path: logical, reason: 'not a regular file' });
-      }
+    } catch (e) {
+      excluded.push({ path: logical, reason: `lstat failed: ${(e as NodeJS.ErrnoException).code ?? 'error'}` });
+      continue;
     }
-    for (let i = subdirs.length - 1; i >= 0; i--) stack.push({ dir: subdirs[i]!, depth: depth + 1 });
+    const key = `${st.dev}:${st.ino}`;
+    if (st.ino !== 0 && seen.has(key)) {
+      excluded.push({ path: logical, reason: 'alias of an already-listed file or directory (hard link / symlink)' });
+      continue;
+    }
+    if (st.ino !== 0) seen.add(key);
+    if (st.isDirectory()) {
+      if (depth > budget.limits.maxDepth) {
+        excluded.push({ path: logical, reason: `max depth ${budget.limits.maxDepth} reached` });
+        budget.markTruncated('max depth reached');
+      } else await pushChildren(p, depth + 1);
+    } else if (st.isFile()) {
+      if (files.length >= budget.limits.maxFiles) {
+        excluded.push({ path: logical, reason: `max files ${budget.limits.maxFiles} reached` });
+        budget.markTruncated('max files reached');
+      } else files.push({ path: p, logicalPath: logical, size: st.size });
+    } else {
+      excluded.push({ path: logical, reason: 'not a regular file' });
+    }
   }
   return { files, excluded };
 }

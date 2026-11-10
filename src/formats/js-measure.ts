@@ -285,9 +285,10 @@ export function measure(ts: typeof tsType, job: JsJob): JsMeasurements {
     const members: readonly tsType.Node[] = ts.isObjectLiteralExpression(container) ? container.properties : (container as tsType.ClassLikeDeclaration).members;
     const edges = new Map<string, { to: string; node: tsType.Node }>();
     for (const mem of members) {
-      if (!ts.isGetAccessorDeclaration(mem) || !mem.body || mem.body.statements.length !== 1) continue;
+      if (!ts.isGetAccessorDeclaration(mem) || !mem.body || mem.body.statements.length === 0) continue;
       const name = ts.isIdentifier(mem.name) || ts.isStringLiteral(mem.name) ? mem.name.text : null;
-      const s = mem.body.statements[0]!;
+      // The getter's final return decides the next receiver; earlier statements are side effects.
+      const s = mem.body.statements[mem.body.statements.length - 1]!;
       if (!name || !ts.isReturnStatement(s) || !s.expression) continue;
       const e = unparen(s.expression);
       let to: string | null = null;
