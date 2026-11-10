@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.tgz
+benchmarks/results/*
+!benchmarks/results/.gitkeep
+!benchmarks/results/*.json
+!benchmarks/results/*.md
+.anti-bla-tmp/

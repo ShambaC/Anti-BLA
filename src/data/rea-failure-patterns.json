@@ -1,0 +1,96 @@
+{
+  "catalogVersion": 1,
+  "upstream": {
+    "package": "rea-agents",
+    "upstream_version": "6.8.0",
+    "commit": "95ebd38d3faae013a7dbf85814efa30a5c6fcf56",
+    "verified_at": "2026-11-10",
+    "note": "Values copied from REA source at the pinned commit. A connected server's own diagnostics (details.limit, inspect_analysis_settings) always take precedence."
+  },
+  "limits": {
+    "js.primitiveCandidates": { "value": 256, "unit": "alternatives", "source": "src/domain/javascript/javascriptSemanticResourceLimits.ts SEMANTIC_PRIMITIVE_CANDIDATE_LIMIT", "resourceLimit": "primitive-candidates" },
+    "js.expressionDepth": { "value": 256, "unit": "levels", "source": "src/domain/javascript/javascriptSemanticResourceLimits.ts SEMANTIC_EXPRESSION_DEPTH_LIMIT", "resourceLimit": "expression-depth" },
+    "js.getterExpansion": { "value": 512, "unit": "states", "source": "src/domain/javascript/javascriptSemanticResourceLimits.ts SEMANTIC_GETTER_EXPANSION_LIMIT", "resourceLimit": "getter-expansion" },
+    "js.aliasSelections": { "value": 512, "unit": "states", "source": "src/domain/javascript/javascriptSemanticResourceLimits.ts SEMANTIC_ALIAS_SELECTION_LIMIT", "resourceLimit": "alias-selections" },
+    "js.primitiveBytes": { "value": 1048576, "unit": "bytes", "source": "src/domain/javascript/javascriptSemanticResourceLimits.ts SEMANTIC_PRIMITIVE_JSON_BYTES_LIMIT", "resourceLimit": "primitive-bytes" },
+    "wasm.interfaceRepresentationBytes": { "value": 33554432, "unit": "bytes", "source": "src/domain/wasm/wasmInterface.ts WASM_INTERFACE_REPRESENTATION_BYTES" },
+    "asar.defaultMaxHeaderBytes": { "value": 16777216, "unit": "bytes", "source": "src/domain/analysisResourceLimits.ts DEFAULT_ASAR_MAX_HEADER_BYTES" },
+    "asar.maximumMaxHeaderBytes": { "value": 268435456, "unit": "bytes", "source": "src/domain/analysisResourceLimits.ts MAXIMUM_ASAR_MAX_HEADER_BYTES" },
+    "electron.maxSentinelsPerSlice": { "value": 32, "unit": "sentinels", "source": "src/electron/ElectronFuseReader.ts ELECTRON_FUSE_LIMITS.maximumSentinelsPerSlice" },
+    "sqlite.inputBytes": { "value": 268435456, "unit": "bytes", "source": "src/sqlite/SqliteDatabaseLimits.ts SQLITE_DATABASE_LIMITS.inputBytes" }
+  },
+  "patterns": [
+    {
+      "id": "asar-header-admission",
+      "match": { "detailsLimitSetting": "asar.max_header_bytes" },
+      "alsoMatchText": ["ASAR header/index admission is limited to"],
+      "category": "resource-limit",
+      "documentation": [
+        "https://github.com/morluto/rea/blob/95ebd38d3faae013a7dbf85814efa30a5c6fcf56/.agents/skills/reverse-engineer-anything/references/javascript-applications.md",
+        "https://github.com/morluto/rea/blob/95ebd38d3faae013a7dbf85814efa30a5c6fcf56/docs/design/limits-and-recovery.md"
+      ]
+    },
+    {
+      "id": "js-semantic-resource-limit",
+      "match": { "resourceLimitValues": ["primitive-candidates", "primitive-bytes", "expression-depth", "getter-expansion", "alias-selections"] },
+      "alsoMatchText": [
+        "Primitive candidate budget exceeded",
+        "Primitive string-byte budget exceeded",
+        "Semantic expression depth budget exceeded",
+        "Getter expansion was conservatively bounded",
+        "Alias selection expansion was conservatively bounded"
+      ],
+      "category": "resource-limit",
+      "documentation": ["https://github.com/morluto/rea/blob/95ebd38d3faae013a7dbf85814efa30a5c6fcf56/.agents/skills/reverse-engineer-anything/references/javascript-applications.md"]
+    },
+    {
+      "id": "wasm-interface-capacity",
+      "match": { "operation": "inspect_wasm_artifact", "code": "resource_constraint" },
+      "alsoMatchText": ["Typed WASM interface decoding exceeds the WABT output representation budget"],
+      "category": "resource-limit",
+      "documentation": ["https://github.com/morluto/rea/blob/95ebd38d3faae013a7dbf85814efa30a5c6fcf56/.agents/skills/reverse-engineer-anything/references/native-and-artifacts.md"]
+    },
+    {
+      "id": "sqlite-column-evaluation",
+      "match": {},
+      "alsoMatchText": ["SQLite cannot evaluate selected column(s)", "column-evaluation"],
+      "category": "resource-limit",
+      "documentation": ["https://github.com/morluto/rea/blob/95ebd38d3faae013a7dbf85814efa30a5c6fcf56/src/sqlite/SqliteDatabaseWorkerExecution.ts"]
+    },
+    {
+      "id": "electron-fuse-sentinels",
+      "match": {},
+      "alsoMatchText": ["Electron fuse sentinels"],
+      "category": "resource-limit",
+      "documentation": ["https://github.com/morluto/rea/blob/95ebd38d3faae013a7dbf85814efa30a5c6fcf56/src/electron/ElectronFuseReader.ts"]
+    },
+    {
+      "id": "transport-oversized",
+      "match": { "code": "resource_constraint", "detailsResource": "transport" },
+      "alsoMatchText": [],
+      "category": "resource-limit",
+      "documentation": ["https://github.com/morluto/rea/blob/95ebd38d3faae013a7dbf85814efa30a5c6fcf56/.agents/skills/reverse-engineer-anything/references/javascript-applications.md"]
+    },
+    {
+      "id": "partial-observation",
+      "match": { "hasPartialObservation": true },
+      "alsoMatchText": [],
+      "category": "analysis-limitation",
+      "documentation": ["https://github.com/morluto/rea/blob/95ebd38d3faae013a7dbf85814efa30a5c6fcf56/.agents/skills/reverse-engineer-anything/references/javascript-applications.md"]
+    },
+    {
+      "id": "provider-timeout",
+      "match": { "code": "provider_timeout" },
+      "alsoMatchText": [],
+      "category": "analysis-limitation",
+      "documentation": ["https://github.com/morluto/rea/blob/95ebd38d3faae013a7dbf85814efa30a5c6fcf56/.agents/skills/reverse-engineer-anything/references/connection-and-recovery.md"]
+    },
+    {
+      "id": "client-deadline",
+      "match": {},
+      "alsoMatchText": ["timed out awaiting tools/call"],
+      "category": "analysis-limitation",
+      "documentation": ["https://github.com/morluto/rea/blob/95ebd38d3faae013a7dbf85814efa30a5c6fcf56/.agents/skills/reverse-engineer-anything/references/connection-and-recovery.md"]
+    }
+  ]
+}
