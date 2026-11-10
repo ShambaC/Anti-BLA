@@ -11,8 +11,8 @@
         "category": "Developer Tools",
         "capabilities": ["Read"]
     },
-    "repository": "https://github.com/ShambaC/anti-bla",
-    "homepage": "https://github.com/ShambaC/anti-bla#readme",
+    "repository": "https://github.com/ShambaC/Anti-BLA",
+    "homepage": "https://github.com/ShambaC/Anti-BLA#readme",
     "author": {
         "name": "ShambaC",
         "url": "https://github.com/ShambaC"

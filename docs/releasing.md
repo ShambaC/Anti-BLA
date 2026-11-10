@@ -7,7 +7,7 @@ Releases are published by `.github/workflows/release.yml` using **npm trusted pu
 npm can only attach a trusted publisher to a package that already exists on the registry. The first version is therefore published once from your machine with your interactive npm login. That uses a short-lived session, not a token.
 
 1. Enable two-factor authentication on your npm account (Account → Two-Factor Authentication). `npm trust` requires it.
-2. Make sure `package.json` → `repository.url` points exactly at this GitHub repository (`git+https://github.com/ShambaC/anti-bla.git`). npm checks it during OIDC publishing.
+2. Make sure `package.json` → `repository.url` points exactly at this GitHub repository (`git+https://github.com/ShambaC/Anti-BLA.git`). npm checks it during OIDC publishing.
 3. Publish the first version locally. Provenance is only possible in CI, so turn it off for this one run:
 
    ```bash
@@ -22,10 +22,10 @@ npm can only attach a trusted publisher to a package that already exists on the 
 4. Attach the trusted publisher. Use either the CLI:
 
    ```bash
-   npm trust github anti-bla --file release.yml --repo ShambaC/anti-bla --env npm --allow-publish
+   npm trust github anti-bla --file release.yml --repo ShambaC/Anti-BLA --env npm --allow-publish
    ```
 
-   or the website: npmjs.com → `anti-bla` → Settings → Trusted Publisher → GitHub Actions. Fill in user `ShambaC`, repository `anti-bla`, workflow `release.yml`, environment `npm`, and allow `npm publish`.
+   or the website: npmjs.com → `anti-bla` → Settings → Trusted Publisher → GitHub Actions. Fill in user `ShambaC`, repository `Anti-BLA` (exact case), workflow `release.yml`, environment `npm`, and allow `npm publish`.
 
    Use `--allow-stage-publish` instead if every CI release should wait for you to run `npm stage approve` with 2FA.
 
@@ -44,6 +44,6 @@ To rehearse, run the workflow manually from the Actions tab (`dry_run: true`). I
 
 ## Troubleshooting
 
-- **`ENEEDAUTH` / 404 on publish:** the trusted-publisher fields do not match. Check the user/repo, the workflow **filename** `release.yml` (not its path), the environment `npm`, and that the package allows `npm publish`. npm does not validate these on save.
+- **`E404 Not Found - PUT` / `ENEEDAUTH` on publish:** the trusted-publisher fields or `repository.url` do not match the repository exactly, including letter case (`ShambaC/Anti-BLA`). Check the user/repo, the workflow **filename** `release.yml` (not its path), the environment `npm`, and that the package allows `npm publish`. npm does not validate these on save.
 - **Errors that look like token problems:** check that the workflow upgraded npm (>= 11.5.1) and that the job has `permissions: id-token: write`.
 - Self-hosted runners are not supported for trusted publishing. Use GitHub-hosted runners.

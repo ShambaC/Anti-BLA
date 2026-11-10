@@ -47,12 +47,12 @@ Use `--project <dir>` to install into one project instead, `--dry-run` to previe
 
 | Route                                       | Command                                                                                                                      |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Skills CLI ([skills.sh](https://skills.sh)) | `npx skills add ShambaC/anti-bla`                                                                                            |
-| Claude Code plugin                          | `/plugin marketplace add ShambaC/anti-bla`, then `/plugin install anti-bla@anti-bla`                                         |
+| Skills CLI ([skills.sh](https://skills.sh)) | `npx skills add ShambaC/Anti-BLA`                                                                                            |
+| Claude Code plugin                          | `/plugin marketplace add ShambaC/Anti-BLA`, then `/plugin install anti-bla@anti-bla`                                         |
 | Codex plugin                                | install from this repository (`.codex-plugin/plugin.json` points at `./skills`)                                              |
 | Manual                                      | copy `skills/anti-bla/` into your agent's skills directory                                                                   |
-| Ask your agent                              | _"Install the Anti-BLA skill from https://github.com/ShambaC/anti-bla by running `npx anti-bla setup --yes`, then restart."_ |
-| From source                                 | `git clone https://github.com/ShambaC/anti-bla && cd anti-bla && npm ci && npm run build && node dist/src/cli.js setup`                                                       |
+| Ask your agent                              | _"Install the Anti-BLA skill from https://github.com/ShambaC/Anti-BLA by running `npx anti-bla setup --yes`, then restart."_ |
+| From source                                 | `git clone https://github.com/ShambaC/Anti-BLA && cd anti-bla && npm ci && npm run build && node dist/src/cli.js setup`                                                       |
 
 The CLI itself needs no installation: the skill calls `anti-bla` when it is on PATH (`npm install -g anti-bla`) and otherwise uses `npx -y anti-bla`.
 
@@ -117,7 +117,7 @@ Clean controls: Anti-BLA ran on the four unhardened originals and reported **0**
 Reproduce it:
 
 ```bash
-git clone https://github.com/ShambaC/anti-bla && cd anti-bla
+git clone https://github.com/ShambaC/Anti-BLA && cd anti-bla
 npm ci
 npm install --no-save bla-agents@3.2.1   # BLA is only needed to build the hardened samples
 npm run bench:bla                        # hardens the owned samples in a temp dir and runs Anti-BLA on both sets

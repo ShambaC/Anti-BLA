@@ -54,11 +54,11 @@
     ],
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/ShambaC/anti-bla.git"
+        "url": "git+https://github.com/ShambaC/Anti-BLA.git"
     },
-    "homepage": "https://github.com/ShambaC/anti-bla#readme",
+    "homepage": "https://github.com/ShambaC/Anti-BLA#readme",
     "bugs": {
-        "url": "https://github.com/ShambaC/anti-bla/issues"
+        "url": "https://github.com/ShambaC/Anti-BLA/issues"
     },
     "publishConfig": {
         "access": "public",
