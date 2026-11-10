@@ -75,7 +75,8 @@ export function parseHeader(b: Buffer, fileSize: number): Header {
   if (pageSize < 512 || pageSize > 65536 || (pageSize & (pageSize - 1)) !== 0) h.problems.push(`invalid page size ${raw}`);
   else if (fileSize % pageSize !== 0) h.problems.push(`file size ${fileSize} is not a multiple of page size ${pageSize}`);
   if (b[21] !== 64 || b[22] !== 32 || b[23] !== 32) h.problems.push('payload fraction bytes are not 64/32/32');
-  if (h.textEncoding < 1 || h.textEncoding > 3) h.problems.push(`invalid text encoding ${h.textEncoding}`);
+  // 0 is legal for a database with an empty schema.
+  if (h.textEncoding > 3) h.problems.push(`invalid text encoding ${h.textEncoding}`);
   if (h.schemaFormat > 4) h.problems.push(`invalid schema format ${h.schemaFormat}`);
   if (h.changeCounter === h.versionValidFor && pageSize >= 512 && h.pageCount * pageSize !== fileSize) h.problems.push(`header page count ${h.pageCount} x ${pageSize} != file size ${fileSize}`);
   return h;

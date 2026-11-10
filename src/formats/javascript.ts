@@ -87,7 +87,7 @@ export async function analyzeJavaScript(ctx: AnalyzeContext, host: JsWorkerHost,
     return { status: 'partial', format, formatConfidence: 'medium', findings, limitations, unknowns, facts: { parse: 'incomplete' } };
   }
   const m = reply.result;
-  let status: AnalyzerResult['status'] = ctx.truncated || m.nodeBudgetExhausted ? 'partial' : 'complete';
+  let status: AnalyzerResult['status'] = ctx.truncated || m.nodeBudgetExhausted || !valid ? 'partial' : 'complete';
   if (m.parseDiagnostics > 0) {
     status = 'partial';
     limitations.push(`Parser recovered from ${m.parseDiagnostics} syntax error(s); structure near those points is approximate.`);
@@ -289,7 +289,7 @@ export interface DecodedMappings {
 
 /** Source Map v3 base64-VLQ decoder, bounded by MAX_SEGMENTS. */
 export function decodeMappings(mappings: string): DecodedMappings {
-  const out: DecodedMappings = { valid: true, segments: 0, truncated: false, generatedLines: 1, referencedSources: new Set(), minSource: 0, maxSource: -1, lineMaxColumn: [0] };
+  const out: DecodedMappings = { valid: true, segments: 0, truncated: false, generatedLines: 1, referencedSources: new Set(), minSource: 0, maxSource: -1, lineMaxColumn: [-1] };
   let genCol = 0, src = 0;
   let fields: number[] = [];
   let value = 0, shift = 0, inValue = false;
@@ -313,7 +313,7 @@ export function decodeMappings(mappings: string): DecodedMappings {
     const c = mappings[i]!;
     if (c === ',' || c === ';') {
       endSegment();
-      if (c === ';') { out.generatedLines++; out.lineMaxColumn.push(0); genCol = 0; }
+      if (c === ';') { out.generatedLines++; out.lineMaxColumn.push(-1); genCol = 0; }
       if (out.segments >= MAX_SEGMENTS) { out.truncated = true; break; }
       continue;
     }
@@ -337,7 +337,14 @@ export function decodeMappings(mappings: string): DecodedMappings {
 export function analyzeSourceMap(ctx: AnalyzeContext): AnalyzerResult {
   const { text } = decodeUtf8(ctx.bytes);
   const r = analyzeSourceMapText(text, ctx, undefined, ctx.logicalPath);
-  return { status: r.status, format: 'source-map', formatConfidence: 'medium', findings: r.findings, limitations: r.limitations, unknowns: r.unknowns, facts: r.facts };
+  return { status: r.status, format: 'source-map', formatConfidence: 'medium', findings: [...r.findings, ...scanMapText(ctx, text)], limitations: r.limitations, unknowns: r.unknowns, facts: r.facts };
+}
+
+/** sourcesContent is untrusted text too (honey sources carry instructions/canaries). */
+function scanMapText(ctx: AnalyzeContext, text: string): Finding[] {
+  const sc = scanSegments([{ text, byteStart: 0, index: new TextIndex(text) }], ctx.sha256, ctx.logicalPath, ctx.budget, 'source map (incl. sourcesContent)');
+  const mf = markerFinding(sc.blaMarkers);
+  return mf ? [...sc.findings, mf] : sc.findings;
 }
 
 interface MapAnalysis {
@@ -403,9 +410,9 @@ function analyzeSourceMapText(text: string, ctx: AnalyzeContext, bundleText: str
     const lines = bundleText.split('\n');
     let lineOverflow = 0, colOverflow = 0;
     for (let l = 0; l < dec.lineMaxColumn.length; l++) {
-      const hasSegs = dec.lineMaxColumn[l]! > 0;
-      if (l >= lines.length) { if (hasSegs) lineOverflow++; continue; }
-      if (dec.lineMaxColumn[l]! > lines[l]!.length) colOverflow++;
+      const col = dec.lineMaxColumn[l]!; // -1 = no segment on this generated line
+      if (l >= lines.length) { if (col >= 0) lineOverflow++; continue; }
+      if (col > lines[l]!.length) colOverflow++;
     }
     if (lineOverflow + colOverflow > 0) {
       findings.push(makeFinding({
@@ -445,7 +452,8 @@ export async function analyzeSourceMapWithBundle(ctx: AnalyzeContext): Promise<A
     base.unknowns.push(`${ctx.logicalPath}: bundle fit not checked (paired bundle exceeded read budget).`);
     return base;
   }
-  const r = analyzeSourceMapText(decodeUtf8(ctx.bytes).text, ctx, decodeUtf8(bytes).text, ctx.logicalPath);
+  const mapText = decodeUtf8(ctx.bytes).text;
+  const r = analyzeSourceMapText(mapText, ctx, decodeUtf8(bytes).text, ctx.logicalPath);
   r.facts.pairedBundle = dir + file.split(/[\\/]/).pop()!;
-  return { status: r.status, format: 'source-map', formatConfidence: 'medium', findings: r.findings, limitations: r.limitations, unknowns: r.unknowns, facts: r.facts };
+  return { status: r.status, format: 'source-map', formatConfidence: 'medium', findings: [...r.findings, ...scanMapText(ctx, mapText)], limitations: r.limitations, unknowns: r.unknowns, facts: r.facts };
 }

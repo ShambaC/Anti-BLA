@@ -1,5 +1,6 @@
 // Version-aware, bounded extraction from REA Evidence / error JSON. Never opens paths found inside it.
 import type { ReaRecordSummary } from '../core/types.js';
+import { PATTERNS } from './failure-catalog.js';
 import { EVIDENCE_ID_RE, LIMIT_KEYS, isObj, looksLikeError, looksLikeEvidence, type Json, type JsonObject } from './evidence-schema.js';
 
 const MAX_NODES = 200_000;
@@ -78,6 +79,10 @@ function summarizeEvidence(v: JsonObject, inputPath: string, ptr: string): ReaRe
   if (typeof v.authority === 'string') s.authority = v.authority;
   if (v.relationship_coverage !== null && v.relationship_coverage !== undefined) s.coveragePointers.push(`${ptr}/relationship_coverage`);
   walkResult(v.normalized_result ?? null, `${ptr}/normalized_result`, s);
+  // REA summaries carry JS budget hits as exact reason strings; map them to their resourceLimit names.
+  const js = PATTERNS.find((p) => p.id === 'js-semantic-resource-limit');
+  const text = [...s.limitations, ...s.unknowns].join(' | ');
+  js?.alsoMatchText.forEach((t, i) => { const name = js.match.resourceLimitValues?.[i]; if (name && text.includes(t)) s.resourceLimits.push(name); });
   s.resourceLimits = [...new Set(s.resourceLimits)].sort();
   return s;
 }

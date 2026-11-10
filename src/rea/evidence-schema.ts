@@ -33,4 +33,4 @@ export function looksLikeError(v: JsonObject): boolean {
 }
 
 /** Detail keys copied from details.limit (limits-and-recovery.md); primitives only. */
-export const LIMIT_KEYS = ['setting', 'value', 'minimum', 'maximum', 'unit', 'required_value', 'source', 'agent_editable', 'scope', 'applies_at', 'rea_restart_required', 'parameter', 'environment'];
+export const LIMIT_KEYS = ['setting', 'value', 'effective_value', 'minimum', 'maximum', 'unit', 'required_value', 'source', 'agent_editable', 'scope', 'applies_at', 'rea_restart_required', 'parameter', 'environment'];

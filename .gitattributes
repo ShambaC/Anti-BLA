@@ -1,0 +1,6 @@
+* text=auto eol=lf
+tests/fixtures/** -text
+*.wasm binary
+*.asar binary
+*.sqlite binary
+*.bin binary

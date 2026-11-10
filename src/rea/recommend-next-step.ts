@@ -98,10 +98,10 @@ export function recommend(records: ReaRecordSummary[]): { findings: Finding[]; a
         actions.push({
           kind: 'rea-tool',
           title: `Raise ${lim.setting}${required !== undefined ? ` to ${required}` : ''} and retry the same request once`,
-          rationale: `REA reported an editable limit (value ${String(lim.value)}, maximum ${String(lim.maximum)}, applies ${String(lim.applies_at ?? 'next_operation')}).`,
+          rationale: `REA reported an editable limit (effective value ${String(lim.effective_value ?? lim.value)}, maximum ${String(lim.maximum)}, applies ${String(lim.applies_at ?? 'next_operation')}).`,
           operation: 'update_analysis_settings',
           parametersHint: { changes: [{ setting: lim.setting, action: 'set', value: required ?? `<integer <= ${String(max)}>` }] },
-          prerequisites: [SCHEMA_CHECK, 'User/resource policy allows the memory this implies.', 'Wait for active work and cleanup to settle before retrying.'],
+          prerequisites: [SCHEMA_CHECK, ...(required === undefined && lim.setting === 'asar.max_header_bytes' ? ['REA did not report required_value: measure it with `anti-bla inspect <archive.asar> --json` (facts.headerBytes) and set at least that, within the maximum.'] : []), 'User/resource policy allows the memory this implies.', 'Wait for active work and cleanup to settle before retrying.'],
           risk: 'changes-settings',
           relatedEvidenceIds: ids,
           documentation: docs(pat('asar-header-admission')).length ? docs(pat('asar-header-admission')) : [`https://github.com/morluto/rea/blob/${CATALOG_UPSTREAM.commit}/docs/design/limits-and-recovery.md`],
@@ -160,6 +160,9 @@ export function recommend(records: ReaRecordSummary[]): { findings: Finding[]; a
     }
     if (pat('client-deadline')) {
       actions.push({ kind: 'manual-review', title: 'Host/client tool deadline, not a REA result', rationale: 'Work or cleanup may still be running; raising REA analysis_timeout_ms cannot fix a shorter client deadline.', prerequisites: ['Increase the host tool deadline (e.g. Codex mcp_servers.<server>.tool_timeout_sec) or report the required setting.'], risk: 'requires-approval', relatedEvidenceIds: ids, documentation: docs(pat('client-deadline')), exitCriterion: 'Do not repeat the unchanged analysis.' });
+    }
+    if (pat('capability-unavailable') && !pat('sqlite-column-evaluation')) {
+      actions.push({ kind: 'manual-review', title: `REA provider unavailable for ${r.operation ?? 'this operation'} (environment, not artifact)`, rationale: 'capability_unavailable describes the REA host configuration (missing tool, unsupported runtime). It says nothing about the artifact or BLA.', prerequisites: ['Follow remediation.action to configure the provider, with user approval; do not install tools implicitly.', 'Meanwhile use anti-bla inspect for a bounded local inventory.'], risk: 'requires-approval', relatedEvidenceIds: ids, documentation: docs(pat('capability-unavailable')), exitCriterion: 'Do not repeat the unchanged call.' });
     }
     if (r.shape === 'error' && pats.length === 0) {
       actions.push({ kind: 'manual-review', title: `Unrecognized REA error ${r.error?.code}`, rationale: 'Not in the pinned failure catalog; follow REA\'s own remediation text only.', prerequisites: ['Read remediation.action; check REA connection-and-recovery guidance.'], risk: 'read-only', relatedEvidenceIds: ids });
