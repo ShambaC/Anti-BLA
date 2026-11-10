@@ -47,3 +47,7 @@ Status values: implemented (a rule detects the pattern as stated), partial (a na
 ## Observed on real REA 6.8.0 (2026-11-10)
 
 REA reported primitive-candidates and expression-depth limits for the owned JS fixture app. The getter-ring and alias-table fixtures did NOT produce REA getter-expansion or alias-selection limits in that run, so those Anti-BLA findings (`js-getter-ring`, `js-alias-table`) are predictions, not confirmed REA failures.
+
+## Measured against bla-agents 3.2.1 (2026-11-10)
+
+BLA's real JS output used conditional alias chains (`aN = flag ? a(N-1)?.x : a(N-1)?.y`, 28 links) and getters returning `this[_k].fieldN`, not the shapes in our hand-made fixtures. `js-alias-chain` and `js-dynamic-receiver-getters` were added for them. All four REA semantic limits REA reported on the hardened file now have a matching Anti-BLA rule. Opaque guards built on `Math.imul` parity and `x | ~x` over a two-valued seed are proven by `js-constant-guard`, and split strings are decoded by `js-folded-strings`. Strings tied to the unresolved seed bit stay as two candidates. Interprocedural or loop-dependent predicates are still not proven.

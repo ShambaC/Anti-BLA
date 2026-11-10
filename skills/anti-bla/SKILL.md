@@ -84,6 +84,17 @@ the analyst. Do not load it merely because code is minified or obfuscated.
 - Never state "this is BLA-protected" or "fully understood" without saying
   which of the three you have. `anti-bla` attribution is never "confirmed".
 
+## Running the CLI
+
+Use `anti-bla` if it is on PATH; otherwise `npx -y anti-bla@0.1` (same arguments). Check with
+`anti-bla --version`. Do not install it globally without the user's approval. All commands are
+read-only toward targets; `--output` refuses paths inside analyzed inputs.
+
+For JavaScript, read `js-folded-strings` (BLA split strings decoded to at most two candidates) and
+`js-constant-guard` (opaque predicates proven constant) before reading obfuscated code by hand.
+For an Electron ASAR, `anti-bla inspect app.asar --member main.js --json` analyzes one member in
+memory, including string folding.
+
 ## Without REA
 
 The CLI still triages local files. State plainly that REA-based conclusions

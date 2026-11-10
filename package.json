@@ -11,14 +11,20 @@
     "check:skill": "npm run build && node dist/scripts/check-skill.js",
     "fixtures": "npm run build && node dist/scripts/generate-fixtures.js",
     "bench": "npm run build && node dist/benchmarks/runner.js",
-    "bench:validate": "npm run build && node dist/benchmarks/validate-results.js"
+    "bench:validate": "npm run build && node dist/benchmarks/validate-results.js",
+    "prepack": "npm run build"
   },
   "keywords": [
     "reverse-engineering",
     "rea",
     "bla",
+    "agent-skill",
+    "claude-code",
+    "codex",
     "static-analysis",
-    "agent-skill"
+    "electron",
+    "wasm",
+    "sqlite"
   ],
   "author": "",
   "license": "MIT",
@@ -40,6 +46,8 @@
     "dist/src",
     "skills",
     "docs",
+    ".claude-plugin",
+    ".codex-plugin",
     "README.md",
     "LICENSE"
   ]

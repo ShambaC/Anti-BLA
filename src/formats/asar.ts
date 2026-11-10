@@ -210,7 +210,7 @@ export async function analyzeAsar(ctx: AnalyzeContext): Promise<AnalyzerResult &
     withIntegrity: members.filter((m) => m.integrityHash).length,
     maxIndexDepth: maxDepth,
     dataBytesCovered: covered,
-    inventorySample: sorted.slice(0, ctx.budget.limits.maxListEntries),
+    inventorySample: sorted.slice(0, ctx.budget.limits.maxListEntries).map((p) => preview(p, 160)),
     inventoryTruncated: sorted.length > ctx.budget.limits.maxListEntries,
   });
   if (members.some((m) => m.unpacked)) unknowns.push(`${lp}: unpacked members live outside the archive (.asar.unpacked) and were not read.`);

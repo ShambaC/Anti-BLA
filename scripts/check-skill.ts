@@ -10,7 +10,7 @@ const SKILL = join(ROOT, 'skills', 'anti-bla');
 export function checkSkill(skillDir = SKILL): string[] {
   const errs: string[] = [];
   const reaTools = new Set((JSON.parse(readFileSync(join(ROOT, 'src', 'data', 'rea-tools-6.8.0.json'), 'utf8')) as { tools: string[] }).tools);
-  const commands = new Set(['triage', 'inspect', 'rea-evidence', 'report']);
+  const commands = new Set(['triage', 'inspect', 'rea-evidence', 'report', 'setup']);
   const skillMd = readFileSync(join(skillDir, 'SKILL.md'), 'utf8');
 
   const fm = /^---\n([\s\S]*?)\n---\n/.exec(skillMd.replace(/\r\n/g, '\n'));

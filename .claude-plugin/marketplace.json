@@ -1,0 +1,14 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "anti-bla",
+  "description": "Anti-BLA skill for REA users.",
+  "owner": { "name": "Anti-BLA contributors" },
+  "plugins": [
+    {
+      "name": "anti-bla",
+      "description": "Recognize and recover from BLA-style adversarial hardening alongside REA.",
+      "source": "./",
+      "category": "development"
+    }
+  ]
+}

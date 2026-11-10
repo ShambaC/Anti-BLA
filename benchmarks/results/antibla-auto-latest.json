@@ -1,6 +1,6 @@
 {
   "schemaVersion": "anti-bla-auto-results/v1",
-  "ranAt": "2026-11-10T06:40:57.821Z",
+  "ranAt": "2026-11-10T07:08:13.488Z",
   "environment": {
     "node": "v22.21.1",
     "platform": "win32 10.0.26200 x64",
@@ -14,7 +14,7 @@
     "negativeControlsWithBlaAttribution": "0/3",
     "negativeControlsWithMediumOrHighFindings": "0/3",
     "allTargetsUnchanged": true,
-    "totalWallMs": 1397
+    "totalWallMs": 1354
   },
   "rows": [
     {
@@ -33,7 +33,7 @@
       "mediumOrHighFindings": [
         "asar-header-exceeds-rea-default"
       ],
-      "wallMs": 483,
+      "wallMs": 453,
       "targetsUnchanged": true,
       "targetSha256": {
         "app.asar": "6d34dabae066175cb4bfe50738fe4be517614d70035117ef16fecc63dab37bd0"
@@ -52,13 +52,14 @@
       ],
       "expectedRulesMissing": [],
       "forbiddenRulesPresent": [],
-      "findings": 3,
+      "findings": 4,
       "mediumOrHighFindings": [
         "js-constant-guard",
         "js-expression-depth",
+        "js-folded-strings",
         "js-literal-alternative-explosion"
       ],
-      "wallMs": 314,
+      "wallMs": 308,
       "targetsUnchanged": true,
       "targetSha256": {
         "app/key.js": "6e3970e85e4182a456853c7990469401b65a71e7301698461ed4fc71130278f7",
@@ -85,7 +86,7 @@
         "wasm-custom-sections",
         "wasm-export-inflation"
       ],
-      "wallMs": 65,
+      "wallMs": 66,
       "targetsUnchanged": true,
       "targetSha256": {
         "module.wasm": "5bf23b7c46f931e9079251c9fc842a812692b44f5e9d4f8c63877cf9e328b8aa"
@@ -108,7 +109,7 @@
         "agent-directed-instruction",
         "sqlite-generated-column-unknown-function"
       ],
-      "wallMs": 69,
+      "wallMs": 68,
       "targetsUnchanged": true,
       "targetSha256": {
         "data.sqlite": "634cbf8918ba29dd1c16de4b53122555dd1a0fd8f08e3911044c4da42ef0a9a6"
@@ -126,7 +127,7 @@
       "forbiddenRulesPresent": [],
       "findings": 1,
       "mediumOrHighFindings": [],
-      "wallMs": 62,
+      "wallMs": 65,
       "targetsUnchanged": true,
       "targetSha256": {
         "app.asar": "f1abe4dc7c886694862e53ddf97650e874ce792ea627cdeb2219304691c22c73"
@@ -144,7 +145,7 @@
       "forbiddenRulesPresent": [],
       "findings": 0,
       "mediumOrHighFindings": [],
-      "wallMs": 325,
+      "wallMs": 321,
       "targetsUnchanged": true,
       "targetSha256": {
         "lib/index.js": "74fe964ae8675ead69c9ec5de6e436a31390a4dfb1ca6bfb098199ddf6d16944",
@@ -163,7 +164,7 @@
       "forbiddenRulesPresent": [],
       "findings": 0,
       "mediumOrHighFindings": [],
-      "wallMs": 79,
+      "wallMs": 73,
       "targetsUnchanged": true,
       "targetSha256": {
         "app.sqlite": "3511fa7feb1cb9f43a937764a8f733fd8ad07e913725d47d715a12457390b9cb"

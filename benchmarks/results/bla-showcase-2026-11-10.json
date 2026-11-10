@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "anti-bla-bla-showcase-rea/v1",
+  "date": "2026-11-10",
+  "environment": { "rea": "rea-agents@6.8.0 via MCP (npx)", "bla": "bla-agents@3.2.1 (npm; 3.2.2 not yet published)", "antiBla": "0.1.0", "node": "v22.21.1", "os": "Windows 11 x64" },
+  "protocol": "Owned clean corpus (benchmarks/bla-showcase.ts) hardened with `bla protect --intensity bankrupt --seed anti-bla-showcase`. REA called at detail=summary with defaults (REA alone), then with Anti-BLA guidance (one supported action, one retry). Hardened artifacts were never executed. Single run, graded by the implementing agent.",
+  "targets": [
+    {
+      "target": "license.js",
+      "question": "What are the license-key rules and what tiers exist?",
+      "groundTruth": "16 chars, starts with 'AB', char-code sum % 7 === 3; tiers pro/basic/free; PRODUCT 'Acme Notes'",
+      "size": { "clean": 422, "hardened": 135778 },
+      "reaClean": { "evidence": "ev_a94c9c35436cc9c51dd77d0388058e4b68498544cf7071d30c1bd399e717ba72", "application": "complete", "semanticLimits": [], "semanticUnknowns": 13 },
+      "reaAlone": { "evidence": "ev_1366e8e432385a8646a3dcfe7c1834cc693581dd89ea3141c751f249bf39bee6", "application": "partial", "semanticLimits": ["alias-selections", "getter-expansion", "primitive-bytes", "primitive-candidates"], "semanticUnknowns": 1951 },
+      "antiBla": { "rulesMatchingReaLimits": ["js-alias-chain", "js-dynamic-receiver-getters", "js-primitive-byte-charge", "js-literal-alternative-explosion"], "guardsProven": 31, "decodedStrings": ["Acme Notes", "string", "pro", "basic", "free"], "gateLocated": "checkLicense at hardened line 489; startsWith('AB') and sum % 7 === 3 stay readable" },
+      "outcome": "recovered: rules and tiers answered from Anti-BLA decoded strings + proven guards; REA semantic limits remain (REA-internal budgets, no supported setting)"
+    },
+    {
+      "target": "app.asar",
+      "question": "Which IPC channel does the app register and what does the preload expose?",
+      "groundTruth": "ipcMain.handle('notes:quota'); preload exposes window.notes.quota()",
+      "size": { "clean": 1115, "hardened": 18154053 },
+      "reaAlone": { "error": "truncated: ASAR header/index admission is limited to 16 MiB (asar.max_header_bytes)", "requiredValueReported": false },
+      "antiBla": { "measuredHeaderBytes": 17443968, "action": "update_analysis_settings asar.max_header_bytes=17443968, retry once, then reset", "memberDecodedStrings": ["notes:quota", "ready", "notes"] },
+      "reaWithAntiBla": { "evidence": "ev_dcd05bdfe7d4e95862bc9a0629241d6b0de35200b2077b95ceab2c16dcbcd78f", "application": "partial", "parsedJavaScriptFiles": 3, "ipc": { "operations": 8, "dynamicChannelOperations": 2, "ambiguousRendererTransmissions": 2 }, "semanticLimits": ["alias-selections", "getter-expansion", "primitive-bytes", "primitive-candidates"] },
+      "outcome": "recovered: admission restored with one supported setting; channel and bridge names decoded by Anti-BLA where REA left them dynamic/ambiguous"
+    },
+    {
+      "target": "module.wasm",
+      "question": "What computation does the module export?",
+      "groundTruth": "one function: i32 add(a, b)",
+      "size": { "clean": 41, "hardened": 6880131 },
+      "reaAlone": { "error": "capability_unavailable: REA_WABT_BIN_DIRECTORY not configured (WABT 1.0.42 required) on this host", "note": "BLA's own report says REA hits WASM_INTERFACE_REPRESENTATION_BYTES with WABT present; not reproduced here" },
+      "antiBla": { "functions": 1, "bodies": 1, "exports": 251, "rules": ["wasm-export-inflation", "wasm-interface-representation", "wasm-custom-sections"], "customSections": 9 },
+      "outcome": "partially recovered: Anti-BLA shows all 251 exports alias the single 9-byte body (byte range given); disassembly of that body was done by hand"
+    },
+    {
+      "target": "licenses.sqlite",
+      "question": "Which table stores licenses, and which columns are safe to read?",
+      "groundTruth": "table licenses(id, license_key, tier); no trap columns in it",
+      "size": { "clean": 8192, "hardened": 53248 },
+      "reaAlone": { "error": "capability_unavailable: Node >= 24.15 required for DatabaseSync.limits on this host", "note": "BLA's own report says REA hits SqliteColumnEvaluationFailure on Node 24" },
+      "antiBla": { "tables": 6, "honeyTables": 5, "trapColumns": ["enclave_key_hierarchy.unsealed_preview", "tpm2_attestation_ledger.verified_state", "zero_trust_session_leases.enclave_claim"], "trapFunction": "enclave_unseal_payload()" },
+      "outcome": "recovered (schema level): real table identified, trap columns isolated to decoy tables; row values intentionally not read"
+    }
+  ],
+  "negativeControls": "Anti-BLA on the 4 clean originals: 0 medium/high findings, attribution none-observed.",
+  "notReproduced": ["REA WABT and SQLite providers (host lacks WABT 1.0.42 and Node >= 24.15)", "BLA CrackMe arena", "token-cost comparisons (not measured in this showcase)"]
+}

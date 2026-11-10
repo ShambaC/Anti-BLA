@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "anti-bla-bla-showcase/v1",
+  "ranAt": "2026-11-10T07:04:16.965Z",
+  "blaVersion": "3.2.1",
+  "node": "v22.21.1",
+  "antiBlaWallMs": 982,
+  "attributionClean": "none-observed",
+  "attributionHardened": "bla-markers-observed",
+  "rows": [
+    {
+      "target": "license.js",
+      "cleanBytes": 422,
+      "hardenedBytes": 135778,
+      "cleanSha256": "85726a98b09ee9d2bf594b102a766aaa4083130897bdce358438d74a7dd3fce7",
+      "hardenedSha256": "d5a0dbc3ee55b1576af7d8cfdde900583adb0cbfe72a4dd614e7e50b111cb137",
+      "cleanMediumOrHighFindings": [],
+      "hardenedRules": [
+        "agent-directed-instruction",
+        "js-alias-chain",
+        "js-constant-guard",
+        "js-dynamic-receiver-getters",
+        "js-folded-strings",
+        "js-literal-alternative-explosion",
+        "js-primitive-byte-charge"
+      ],
+      "decodedStrings": [
+        "decoded: Acme Notes | A8me2No9es",
+        "decoded: string | s3ri4g97",
+        "decoded: pro | pdo3522",
+        "decoded: basic | basi41f",
+        "decoded: free | f4ee3ae5"
+      ],
+      "facts": {
+        "nodes": 21119,
+        "functions": 156
+      }
+    },
+    {
+      "target": "app.asar",
+      "cleanBytes": 1115,
+      "hardenedBytes": 18154053,
+      "cleanSha256": "98caada5e60c656e8adc9e32ea4df7ce49749df7837a9306f4f1c0e82a5a7daa",
+      "hardenedSha256": "241ef82d79abade995c8f9d235a268f1ec40cf024fb4c9187f62d4e5cacd8231",
+      "cleanMediumOrHighFindings": [],
+      "hardenedRules": [
+        "agent-directed-instruction",
+        "asar-header-exceeds-rea-default"
+      ],
+      "decodedStrings": [],
+      "facts": {
+        "headerBytes": 17443968
+      }
+    },
+    {
+      "target": "module.wasm",
+      "cleanBytes": 41,
+      "hardenedBytes": 6880131,
+      "cleanSha256": "f61fd62f57c41269c3c23f360eeaf1090b1db9c38651106674d48bc65dba88ba",
+      "hardenedSha256": "0f46310e29e9748dde522114c44ef51e38412ceb0f6f1f5217a3b45940582a34",
+      "cleanMediumOrHighFindings": [],
+      "hardenedRules": [
+        "wasm-custom-sections",
+        "wasm-export-inflation",
+        "wasm-interface-representation"
+      ],
+      "decodedStrings": [],
+      "facts": {
+        "functions": 1,
+        "exportCount": 251
+      }
+    },
+    {
+      "target": "licenses.sqlite",
+      "cleanBytes": 8192,
+      "hardenedBytes": 53248,
+      "cleanSha256": "2035acfb1eb704bf30ea7c9c1491d1d683a3ca588bbd2aaf5ea320a4b37df1fa",
+      "hardenedSha256": "a982df310c2e3702b6f6516872fd1936aea79c58a02f90e457ea0e603f54c2f6",
+      "cleanMediumOrHighFindings": [],
+      "hardenedRules": [
+        "sqlite-generated-column-unknown-function"
+      ],
+      "decodedStrings": [],
+      "facts": {
+        "generatedColumns": 3,
+        "tableNames": [
+          "canary_transport_redaction",
+          "enclave_key_hierarchy",
+          "licenses",
+          "system_diagnostic_log",
+          "tpm2_attestation_ledger",
+          "zero_trust_session_leases"
+        ]
+      }
+    }
+  ]
+}

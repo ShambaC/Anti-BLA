@@ -7,6 +7,7 @@ import { runTriage } from './commands/triage.js';
 import { runInspect, INSPECT_FORMATS } from './commands/inspect.js';
 import { runReaEvidence } from './commands/rea-evidence.js';
 import { runReport } from './commands/report.js';
+import { CLIENTS, runSetup, type Client, type SetupOptions } from './commands/setup.js';
 import { toJson } from './reports/json.js';
 
 const LIMIT_HELP = Object.entries(CLI_LIMIT_FLAGS).map(([f, k]) => `  ${f.padEnd(18)} default ${DEFAULT_LIMITS[k]}`).join('\n');
@@ -26,6 +27,7 @@ Usage:
   anti-bla inspect <file> [--format f] [--member p] [options]
   anti-bla rea-evidence <evidence.json>... [options]
   anti-bla report <report.json> [--format markdown|json] [--output f]
+  anti-bla setup [--client claude,agents] [--project <dir>] [--dry-run] [--yes] [--uninstall]
   anti-bla --version | --help | <command> --help
 
 Anti-BLA never executes, modifies or extracts targets, never contacts the network,
@@ -47,6 +49,12 @@ Preserves Evidence IDs, limitations, unknowns and coverage pointers; emits condi
 REA next steps. Paths inside the JSON are never opened.
 
 ${COMMON}`,
+  setup: `anti-bla setup [--client claude,agents] [--project <dir>] [--dry-run] [--yes] [--uninstall]
+Installs the anti-bla skill next to your other agent skills (the same places REA's setup uses):
+  claude  ->  ~/.claude/skills/anti-bla   (or <project>/.claude/skills with --project)
+  agents  ->  ~/.agents/skills/anti-bla   (Codex, Cursor, Gemini CLI and other Agent Skills clients)
+Default: both when ~/.claude exists, otherwise agents. Shows the plan first; writes only with --yes
+or an interactive y. Existing different copies are backed up. Never edits REA or MCP configuration.`,
   report: `anti-bla report <report.json> [--format markdown|json] [--output <file>] [--force]
 Renders a stored anti-bla-report/v1 without reopening any target.`,
 };
@@ -57,8 +65,8 @@ interface Parsed {
   flags: Map<string, string | true>;
 }
 
-const VALUE_FLAGS = new Set(['--output', '--format', '--member', ...Object.keys(CLI_LIMIT_FLAGS)]);
-const BOOL_FLAGS = new Set(['--json', '--force', '--help', '-h', '--version', '-V', '--redact-paths']);
+const VALUE_FLAGS = new Set(['--output', '--format', '--member', '--client', '--project', ...Object.keys(CLI_LIMIT_FLAGS)]);
+const BOOL_FLAGS = new Set(['--json', '--force', '--help', '-h', '--version', '-V', '--redact-paths', '--dry-run', '--yes', '-y', '--uninstall']);
 
 function parse(argv: string[]): Parsed {
   const flags = new Map<string, string | true>();
@@ -114,6 +122,19 @@ export async function main(argv: string[]): Promise<number> {
     const force = p.flags.has('--force');
     const redactPaths = p.flags.has('--redact-paths');
 
+    if (p.command === 'setup') {
+      const o: SetupOptions = { dryRun: p.flags.has('--dry-run'), yes: p.flags.has('--yes') || p.flags.has('-y'), uninstall: p.flags.has('--uninstall') };
+      const c = p.flags.get('--client');
+      if (typeof c === 'string') {
+        const list = c.split(',').map((x) => x.trim()).filter(Boolean);
+        for (const x of list) if (!(CLIENTS as readonly string[]).includes(x)) throw new UsageError(`Unknown --client ${x}; expected ${CLIENTS.join(', ')}`);
+        o.clients = list as Client[];
+      }
+      const proj = p.flags.get('--project');
+      if (typeof proj === 'string') o.project = proj;
+      await runSetup(o);
+      return 0;
+    }
     if (p.command === 'report') {
       if (p.positionals.length !== 1) throw new UsageError('report needs exactly one report.json');
       const fmt = String(p.flags.get('--format') ?? 'markdown');

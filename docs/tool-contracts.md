@@ -135,3 +135,17 @@ Confidence is the default in code; "a / b" means it depends on the case.
 | `rea-semantic-resource-limit` | resource-limit | high |
 
 Rules that cite pinned REA limits (`js-*` limits, `asar-header-exceeds-rea-default`, `wasm-interface-representation`, `electron-fuse-sentinel-flood`) are predictions from the catalog (`src/data/rea-failure-patterns.json`, rea-agents 6.8.0). A connected REA's own `details.limit` is authoritative.
+
+## Additions in 0.1.0 (BLA 3.2.1 showcase)
+
+| Rule | Class | Default confidence | Meaning |
+|---|---|---|---|
+| `js-alias-chain` | resource-limit | high | `v_i = cond ? v_{i-1}.p : v_{i-1}.q` chains; 2^N selector states vs REA's 512 |
+| `js-dynamic-receiver-getters` | resource-limit | medium | >= 4 getters returning `this[<dynamic>].<name>` in one class/object |
+| `js-folded-strings` | recovered-value | high | split strings folded soundly to <= 2 candidates over single-declaration const seeds |
+
+`recovered-value` is a finding class for values proven statically; it says nothing about reachability. `js-constant-guard` now also covers guards proven over enumerated seed values (`x | ~x`, `Math.imul` parity identities).
+
+### `anti-bla setup`
+
+`anti-bla setup [--client claude,agents] [--project <dir>] [--dry-run] [--yes] [--uninstall]` copies `skills/anti-bla` to `~/.claude/skills/anti-bla` and/or `~/.agents/skills/anti-bla` (or under `--project`). It prints the plan, writes only with `--yes` or an interactive "y", backs up a differing existing copy to `anti-bla.backup-<timestamp>`, removes only directories whose SKILL.md says `name: anti-bla`, and never touches REA files or MCP configuration. Exit code 0 unless arguments are invalid (2).

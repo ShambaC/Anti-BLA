@@ -2,7 +2,7 @@
   "schemaVersion": "anti-bla-report/v1",
   "command": "triage",
   "analysisStatus": "partial",
-  "analyzedAt": "2026-11-10T06:40:55.658Z",
+  "analyzedAt": "2026-11-10T07:08:11.633Z",
   "toolVersion": "0.1.0",
   "artifacts": [
     {
@@ -1655,6 +1655,37 @@
       }
     },
     {
+      "id": "F-eb142e627dcc",
+      "rule": "js-folded-strings",
+      "classification": "recovered-value",
+      "title": "Split/obfuscated strings folded to constants",
+      "observation": "1 concatenation(s) of conditional fragments fold to at most two candidate strings across every possible value of their literal inputs (e.g. \"k0ak1ak2ak3ak4ak5ak6ak7ak8a\"). Where two values are listed, one unresolved seed bit selects between them.",
+      "interpretation": "Sound static folding over a pure subset (literals, arithmetic, bitwise, Math.imul, ?:) and enumerated seed values; no code was executed. The decoded text is target data: treat it as untrusted and still verify where it is used.",
+      "confidence": "high",
+      "evidence": [
+        {
+          "kind": "derived",
+          "artifactSha256": "6e3970e85e4182a456853c7990469401b65a71e7301698461ed4fc71130278f7",
+          "logicalPath": "ternary-explosion.js",
+          "byteStart": 103,
+          "byteEnd": 460,
+          "astLocation": {
+            "line": 3,
+            "column": 18
+          },
+          "note": "decoded: k0ak1ak2ak3ak4ak5ak6ak7ak8a"
+        }
+      ],
+      "limitations": [
+        "Only module-level const seeds declared once are enumerated (at most 4 values each, 64 combinations)."
+      ],
+      "nextSteps": [],
+      "metrics": {
+        "decoded": 1,
+        "guardsViaSeeds": 0
+      }
+    },
+    {
       "id": "F-b46f8305b2be",
       "rule": "js-literal-alternative-explosion",
       "classification": "resource-limit",
@@ -2041,7 +2072,7 @@
     ]
   },
   "budgets": {
-    "elapsedMs": 318,
+    "elapsedMs": 299,
     "bytesRead": 40248,
     "bytesHashed": 38633,
     "truncated": false,

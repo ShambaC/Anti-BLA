@@ -39,6 +39,8 @@ jobs:
           node dist/src/cli.js rea-evidence tests/fixtures/rea/asar-admission-error.mcp.json --json > /dev/null
           node dist/src/cli.js triage tests/fixtures/bla-like --output "$RUNNER_TEMP/r.json"
           node dist/src/cli.js report "$RUNNER_TEMP/r.json" --format markdown > /dev/null
+          node dist/src/cli.js setup --project "$RUNNER_TEMP/proj" --yes
+          test -f "$RUNNER_TEMP/proj/.claude/skills/anti-bla/SKILL.md"
       - name: Automated benchmark arm (size/time smoke)
         run: node dist/benchmarks/runner.js
       - name: Paired benchmark record validates
