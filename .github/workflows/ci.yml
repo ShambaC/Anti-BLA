@@ -1,0 +1,48 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: ['22.x', '24.x']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Fixture hashes and full test suite
+        run: node --test --test-reporter=spec "dist/tests/**/*.test.js"
+      - name: Skill validation
+        run: node dist/scripts/check-skill.js
+      - name: CLI smoke
+        shell: bash
+        run: |
+          node dist/src/cli.js --version
+          node dist/src/cli.js --help
+          node dist/src/cli.js triage tests/fixtures/clean --json > /dev/null
+          node dist/src/cli.js inspect tests/fixtures/bla-like/trap.sqlite --json > /dev/null
+          node dist/src/cli.js rea-evidence tests/fixtures/rea/asar-admission-error.mcp.json --json > /dev/null
+          node dist/src/cli.js triage tests/fixtures/bla-like --output "$RUNNER_TEMP/r.json"
+          node dist/src/cli.js report "$RUNNER_TEMP/r.json" --format markdown > /dev/null
+      - name: Automated benchmark arm (size/time smoke)
+        run: node dist/benchmarks/runner.js
+      - name: Paired benchmark record validates
+        run: node dist/benchmarks/validate-results.js benchmarks/results/paired-2026-11-10.json
+
+  # Heavy REA/BLA integration needs external packages and providers (REA MCP, WABT, Node >= 24.15).
+  # It is manual-only by design; see docs/benchmark-methodology.md.

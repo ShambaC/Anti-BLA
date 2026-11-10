@@ -11,7 +11,7 @@ import { toJson } from './reports/json.js';
 
 const LIMIT_HELP = Object.entries(CLI_LIMIT_FLAGS).map(([f, k]) => `  ${f.padEnd(18)} default ${DEFAULT_LIMITS[k]}`).join('\n');
 const COMMON = `Common options:
-  --json              machine-readable report on stdout (logs on stderr)
+  --json              machine-readable report on stdout (diagnostics on stderr; with --output the report goes only to the file)
   --output <file>     write the report atomically to <file> (never inside the analyzed input)
   --force             allow --output to replace an existing file
   --redact-paths      replace absolute artifact paths with <redacted>/<logical path>

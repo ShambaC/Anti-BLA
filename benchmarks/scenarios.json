@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "anti-bla-scenarios/v1",
+  "notes": "All targets are owned fixtures produced by scripts/generate-fixtures.ts (no BLA code or BLA output). 'generator' targets are rebuilt in a temp dir per run. Ground truth is known by construction.",
+  "scenarios": [
+    {
+      "id": "p0-asar-header",
+      "kind": "p0",
+      "target": { "generator": "asarInflated", "file": "app.asar" },
+      "question": "What does the application's main.js print, and how many real (non-padding) source files does the archive contain?",
+      "groundTruth": [
+        { "id": "prints-hello", "fact": "main.js prints 'hello' via console.log" },
+        { "id": "one-real-file", "fact": "main.js is the only file with content; the 'pad' directory holds zero-byte padding entries" },
+        { "id": "header-limit-explained", "fact": "REA's default ASAR header admission (16 MiB) is exceeded; a supported asar.max_header_bytes setting admits it" }
+      ],
+      "expectAntiBla": { "rules": ["asar-header-exceeds-rea-default"], "forbidRules": [] },
+      "reaOperation": "analyze_javascript_application"
+    },
+    {
+      "id": "p0-js-candidates",
+      "kind": "p0",
+      "target": { "fixture": "bla-like/ternary-explosion.js", "file": "app/key.js", "extra": { "app/package.json": "{\"name\":\"bench-app\",\"version\":\"1.0.0\",\"type\":\"module\",\"main\":\"key.js\"}" } },
+      "question": "In key.js, what exact string value does the local constant `secret` hold, and is it fixed regardless of the input argument?",
+      "groundTruth": [
+        { "id": "secret-value", "fact": "secret === 'k0ak1ak2ak3ak4ak5ak6ak7ak8a'" },
+        { "id": "guards-constant", "fact": "every guard ((i*7)%3 === (i*7)%3) is always true, so the 'b' alternatives are dead and secret does not depend on input" }
+      ],
+      "expectAntiBla": { "rules": ["js-literal-alternative-explosion", "js-constant-guard"], "forbidRules": [] },
+      "reaOperation": "analyze_javascript_application"
+    },
+    {
+      "id": "p0-wasm-decoy",
+      "kind": "p0",
+      "target": { "fixture": "bla-like/decoy-custom.wasm", "file": "module.wasm" },
+      "question": "What computation does this WebAssembly module export, how many distinct functions implement its exports, and does it contain usable credentials?",
+      "groundTruth": [
+        { "id": "add", "fact": "the only function adds two i32 parameters" },
+        { "id": "one-function", "fact": "all 301 exports alias the same single function (index 0)" },
+        { "id": "creds-metadata", "fact": "credential-like text is in custom sections (metadata never executed); it must not be treated as usable credentials" }
+      ],
+      "expectAntiBla": { "rules": ["wasm-custom-sections", "wasm-export-inflation", "credential-shaped-string"], "forbidRules": [] },
+      "reaOperation": "inspect_wasm_artifact"
+    },
+    {
+      "id": "p0-sqlite-trap",
+      "kind": "p0",
+      "target": { "fixture": "bla-like/trap.sqlite", "file": "data.sqlite" },
+      "question": "Which tables does this database define, and what value does license_cache.preview hold for its row?",
+      "groundTruth": [
+        { "id": "tables", "fact": "tables license_cache and notes" },
+        { "id": "preview-unknown", "fact": "preview is a VIRTUAL generated column computed by application function app_unseal(blob); its value cannot be determined without that application function and must be reported unknown" }
+      ],
+      "expectAntiBla": { "rules": ["sqlite-generated-column-unknown-function"], "forbidRules": [] },
+      "reaOperation": "inspect_sqlite_database"
+    },
+    {
+      "id": "neg-clean-asar",
+      "kind": "negative-control",
+      "target": { "fixture": "clean/app.asar", "file": "app.asar" },
+      "question": "What does main.js do, and is there evidence that this archive was adversarially hardened?",
+      "groundTruth": [
+        { "id": "ready-log", "fact": "main.js logs 'ready' when Electron's app is ready" },
+        { "id": "no-hardening", "fact": "no evidence of adversarial hardening" }
+      ],
+      "expectAntiBla": { "rules": [], "forbidRules": ["asar-header-exceeds-rea-default", "bla-marker-string", "agent-directed-instruction"] },
+      "reaOperation": "analyze_javascript_application"
+    },
+    {
+      "id": "neg-minified-js",
+      "kind": "negative-control",
+      "target": { "fixture": "clean/minified.js", "file": "lib/index.js", "extra": { "lib/package.json": "{\"name\":\"bench-lib\",\"version\":\"1.0.0\",\"main\":\"index.js\"}" } },
+      "question": "What does classify(5) return, and is this code adversarially hardened or merely minified?",
+      "groundTruth": [
+        { "id": "small", "fact": "classify(5) returns 'small'" },
+        { "id": "minified-only", "fact": "ordinary minification; no adversarial hardening" }
+      ],
+      "expectAntiBla": { "rules": [], "forbidRules": ["js-literal-alternative-explosion", "js-getter-ring", "js-constant-guard", "bla-marker-string"] },
+      "reaOperation": "analyze_javascript_application"
+    },
+    {
+      "id": "neg-clean-sqlite",
+      "kind": "negative-control",
+      "target": { "fixture": "clean/normal.sqlite", "file": "app.sqlite" },
+      "question": "Which tables and views exist, what is users.upper_name, and is there any analysis trap?",
+      "groundTruth": [
+        { "id": "objects", "fact": "table users, index users_name, view v_users" },
+        { "id": "upper", "fact": "upper_name is a VIRTUAL generated column upper(name) using a built-in function" },
+        { "id": "no-trap", "fact": "no trap: the generated column uses a built-in function" }
+      ],
+      "expectAntiBla": { "rules": [], "forbidRules": ["sqlite-generated-column-unknown-function", "bla-marker-string"] },
+      "reaOperation": "inspect_sqlite_database"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+# Budget recovery
+
+Rule: one hypothesis, one supported action, one retry. A REA capacity error is an observed condition, not proof of BLA. Never repeat an unchanged failing call. Never patch REA. Read REA's `details.limit` and `remediation` first; they override this table.
+
+| Observed REA condition | First supported action | Check first | Stop condition |
+|---|---|---|---|
+| ASAR admission: `truncated`, `details.limit.setting` = `asar.max_header_bytes` | `update_analysis_settings` set the value, then retry the same request once. Alternative: an extracted directory avoids header admission (extract elsewhere, only with user authorization). | `agent_editable`, `minimum`/`maximum`, `applies_at`. If `required_value` is absent, run `anti-bla inspect <asar> --json` and read `facts.headerBytes`. Resource policy allows the memory. | Needed size above `maximum` (268,435,456 by default), setting not advertised, or same error again. `source_paths`, `max_heap_mb` and host memory do not bypass admission. |
+| JS semantic limits: unknowns with `resourceLimit` primitive-candidates, primitive-bytes, expression-depth, getter-expansion, alias-selections | `inspect_analysis_view` on the retained Evidence; read facts outside the limited expressions. `anti-bla triage <source file> --json` locates the constructs. | Parent Evidence ID (`parent_evidence_id`). Whether the question depends on the unknown value. | Question needs the limited value: report it unknown. No documented setting raises these limits; do not ratchet global limits. |
+| WASM interface capacity: `inspect_wasm_artifact` `resource_constraint`; "Typed WASM interface decoding exceeds the WABT output representation budget" | `anti-bla inspect <module.wasm> --json` for sections, imports, exports. | `wasm-interface-representation` metrics (the charge is a lower bound). | No documented REA setting in 6.8.0; repeating fails the same way. Signatures and bodies beyond the budget stay unknown. |
+| SQLite column evaluation: "SQLite cannot evaluate selected column(s)" | `inspect_sqlite_database` with `schema_scope: "database"` (REA remediation: omit table), or select readable columns. | `sqlite-generated-column-unknown-function`. A legitimate application function can cause this too. | Computed values need the application's functions: report unknown. Never evaluate columns another way. |
+| Electron fuse sentinels: "Electron fuse sentinels" over the per-slice limit (32) | None supported. `anti-bla triage` lists sentinel offsets. | `electron-fuse-sentinel-flood` offsets. | Report fuse state as unknown. |
+| Transport oversize: `resource_constraint`, `details.resource` = `transport` | `inspect_analysis_view` with `details.reported_limits.evidence_reference` (summary, one module, or page). `export_evidence_bundle` for the complete record. | Same MCP connection; reference not lost. | Reference missing: use an exported bundle. Never invent an ID. A broad follow-up can also exceed framing. |
+| `partial_observation` in the error | `inspect_analysis_view` on the retained partial Evidence. | Which scopes it covers. | Report coverage as partial; do not rerun the producer unchanged. |
+| `provider_timeout` | Follow `remediation.action`; reuse partial Evidence; settle cleanup first. | The setting and bounds REA names. Change only fields REA recommends. | Same unchanged call; setting not named; restart-required values need a restart. |
+| Host "timed out awaiting tools/call" (no REA result) | Raise the host tool deadline with headroom for execution, cleanup and delivery (Codex: `mcp_servers.<server>.tool_timeout_sec`, seconds), or report the needed setting. | Work may still run. Server `analysis_timeout_ms` (milliseconds) is separate and cannot fix a shorter client deadline. | Do not repeat the unchanged analysis. |
+| `capability_unavailable` | Environment issue. Follow `remediation.action` with user approval; use `anti-bla inspect` meanwhile. | Missing provider or runtime. Observed 2026-11-10: `inspect_wasm_artifact` needs WABT 1.0.42 (`REA_WABT_BIN_DIRECTORY` not set); `inspect_sqlite_database` needs Node.js >=24.15 in 24.x or 26+ (`DatabaseSync.limits`). | Do not install tools implicitly. This says nothing about the artifact or BLA. |
+| Same failure repeated (identical code, message, limit, operation) | Change scope or setting through a supported action, or stop. | Anti-BLA emits a `stop` action for two or more identical failures. | Report the limitation. |
+
+## Worked example: oversized ASAR header
+
+Observed 2026-11-10, rea-agents 6.8.0 via MCP on Windows, Node 22.21.1.
+
+1. `analyze_javascript_application` on an ASAR with a 16,781,416-byte header returned code `truncated` (category `truncated`). `details.limit` was `{setting:"asar.max_header_bytes", effective_value:16777216, source:"default", unit:"bytes", minimum:1, maximum:268435456, applies_at:"next_operation", agent_editable:true, scope:"rea-runtime", rea_restart_required:false}`.
+2. REA gave no `required_value`. `anti-bla inspect <asar> --json` reported `facts.headerBytes` = 16781416, the needed size: 4,200 bytes over the default and far below the maximum.
+3. `update_analysis_settings {changes:[{setting:"asar.max_header_bytes",action:"set",value:16781416}]}`, then one retry succeeded with application coverage "complete".
+4. Afterwards `update_analysis_settings` with action `reset` restored the default.
+
+REA states that `source_paths`, `max_heap_mb` or host memory do not bypass header admission, and that an extracted directory avoids it. Before raising the setting, read `headerToDataRatio` in the `asar-header-exceeds-rea-default` finding. A very large ratio is the stronger adversarial signal; a large legitimate app can exceed 16 MiB.
