@@ -2,7 +2,10 @@
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "anti-bla",
   "description": "Anti-BLA skill for REA users.",
-  "owner": { "name": "Anti-BLA contributors" },
+  "owner": {
+    "name": "ShambaC",
+    "url": "https://github.com/ShambaC"
+  },
   "plugins": [
     {
       "name": "anti-bla",

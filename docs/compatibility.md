@@ -67,7 +67,7 @@ These values are stored in `src/data/rea-failure-patterns.json` with `upstream_v
 
 ## BLA showcase run (2026-11-10)
 
-- `bla-agents@3.2.1` was installed from npm into the git-ignored `scratch/` (3.2.2 is on GitHub `main` but not yet published). It was run only as `bla protect <owned file> -o <out> --intensity bankrupt --seed anti-bla-showcase`. The hardened output was never executed.
+- `bla-agents@3.2.1` was installed from npm with `npm install --no-save` (3.2.2 is on GitHub `main` but not yet published). It was run only as `bla protect <owned file> -o <out> --intensity bankrupt --seed anti-bla-showcase`. The hardened output was never executed.
 - REA 6.8.0 on the hardened JS app: application `partial`, limits alias-selections, getter-expansion, primitive-bytes, primitive-candidates (1,951 semantic unknowns). On the clean original: `complete`, no limits.
 - REA on the hardened ASAR (header 17,443,968 B): `truncated` admission error. After `asar.max_header_bytes` = 17,443,968 and one retry: admitted (3 JS files parsed, partial semantics). The setting was reset afterwards (revision 4).
 - Results: `benchmarks/results/bla-showcase-2026-11-10.json`; reproducible Anti-BLA part: `benchmarks/bla-showcase.ts`.

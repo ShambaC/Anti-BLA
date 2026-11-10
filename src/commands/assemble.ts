@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join, resolve } from 'node:path';
 import { aggregateStatus, attribution } from '../core/classification.js';
@@ -6,7 +7,8 @@ import { isInside } from '../core/files.js';
 import type { Budget } from '../core/budgets.js';
 import { REPORT_SCHEMA_VERSION, type AnalysisStatus, type AntiBlaReport, type ArtifactIdentity, type Finding, type ReaSummary, type SuggestedAction } from '../core/types.js';
 
-export const TOOL_VERSION = '0.1.0';
+// Single source of truth: the package version (dist/src/commands -> package root).
+export const TOOL_VERSION: string = (JSON.parse(readFileSync(new URL('../../../package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
 export class UsageError extends Error {
   constructor(message: string, readonly code = 'invalid_input') { super(message); }

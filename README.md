@@ -33,9 +33,9 @@ npx anti-bla setup
 
 Setup shows its plan before writing anything. It installs the `anti-bla` skill next to your other agent skills, in the same places REA's setup uses:
 
-| Agent | Skill location |
-|---|---|
-| Claude Code | `~/.claude/skills/anti-bla` |
+| Agent                                                                              | Skill location              |
+| ---------------------------------------------------------------------------------- | --------------------------- |
+| Claude Code                                                                        | `~/.claude/skills/anti-bla` |
 | Codex, Cursor, Gemini CLI and other [Agent Skills](https://agentskills.io) clients | `~/.agents/skills/anti-bla` |
 
 Use `--project <dir>` to install into one project instead, `--dry-run` to preview, `--yes` to skip the prompt, and `--uninstall` to remove the skill. An existing modified copy is backed up first. Setup never edits REA, its skill, or any MCP configuration. Restart your agent afterward.
@@ -45,14 +45,14 @@ Use `--project <dir>` to install into one project instead, `--dry-run` to previe
 
 <br />
 
-| Route | Command |
-|---|---|
-| Skills CLI ([skills.sh](https://skills.sh)) | `npx skills add OWNER/anti-bla` |
-| Claude Code plugin | `/plugin marketplace add OWNER/anti-bla`, then `/plugin install anti-bla@anti-bla` |
-| Codex plugin | install from this repository (`.codex-plugin/plugin.json` points at `./skills`) |
-| Manual | copy `skills/anti-bla/` into your agent's skills directory |
-| Ask your agent | *"Install the Anti-BLA skill from https://github.com/OWNER/anti-bla by running `npx anti-bla setup --yes`, then restart."* |
-| From source | `git clone … && npm ci && npm run build && node dist/src/cli.js setup` |
+| Route                                       | Command                                                                                                                      |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Skills CLI ([skills.sh](https://skills.sh)) | `npx skills add ShambaC/anti-bla`                                                                                            |
+| Claude Code plugin                          | `/plugin marketplace add ShambaC/anti-bla`, then `/plugin install anti-bla@anti-bla`                                         |
+| Codex plugin                                | install from this repository (`.codex-plugin/plugin.json` points at `./skills`)                                              |
+| Manual                                      | copy `skills/anti-bla/` into your agent's skills directory                                                                   |
+| Ask your agent                              | _"Install the Anti-BLA skill from https://github.com/ShambaC/anti-bla by running `npx anti-bla setup --yes`, then restart."_ |
+| From source                                 | `git clone https://github.com/ShambaC/anti-bla && cd anti-bla && npm ci && npm run build && node dist/src/cli.js setup`                                                       |
 
 The CLI itself needs no installation: the skill calls `anti-bla` when it is on PATH (`npm install -g anti-bla`) and otherwise uses `npx -y anti-bla`.
 
@@ -61,31 +61,42 @@ The CLI itself needs no installation: the skill calls `anti-bla` when it is on P
 ### Ask your agent
 
 ```text
-Using REA and the anti-bla skill, explain how the license check in /abs/path/app.asar works.
-This is software I own. Cite Evidence IDs and byte ranges, and list what stays unknown.
+Understand how the license check works in the Notes app. If REA stalls or the code fights back,
+use the anti-bla skill, recover what you can, and show me the evidence and what stays unknown.
 ```
+
+Replace "the Notes app" with an app you own or are authorized to analyze, and "the license check" with the feature you want to understand. You do not need to name Anti-BLA every time. The skill loads on its own when REA hits a capacity limit or the target contains decoys or text aimed at the agent.
 
 ### Use the terminal
 
+Triage an extracted app directory, an ASAR, or any single file:
+
 ```bash
-npx anti-bla triage /abs/path/app-or-dir            # one report for a file or a whole directory
-npx anti-bla inspect app.asar --member main.js      # one ASAR member, analyzed in memory
-npx anti-bla rea-evidence rea-error.json            # turn a REA error or Evidence into supported next steps
-npx anti-bla report report.json --format markdown   # render a stored report
+npx -y anti-bla triage /absolute/path/to/app --json
 ```
 
-Add `--json` for machine-readable output. All commands are read-only: targets are never executed, modified or extracted, and nothing is sent over the network.
+The report lists each artifact's SHA-256, the traps it found with byte or AST locations, decoded values, suggested REA next steps, and what stays unknown. Replace the path with your target, such as `"D:/apps/example"` on Windows.
+
+More commands:
+
+```bash
+npx -y anti-bla inspect <file> [--member <path-in-asar>]   # one file; one ASAR member analyzed in memory
+npx -y anti-bla rea-evidence <saved-rea-output.json>      # turn a REA error or Evidence record into supported next steps
+npx -y anti-bla report <report.json> --format markdown    # render a stored report
+```
+
+To install the `anti-bla` command for regular use, run `npm install --global anti-bla`, then `anti-bla --help`. Add `--json` for machine-readable output. All commands are read-only: targets are never executed, modified or extracted, and nothing is sent over the network.
 
 ## Results against real BLA
 
 We wrote a small app with a known answer, hardened it with **real `bla-agents@3.2.1`** (`bla protect --intensity bankrupt`), and asked the same question three ways: REA on the clean original, REA alone on the hardened copy, and REA guided by Anti-BLA. REA is `rea-agents@6.8.0` over MCP. The hardened files were never executed.
 
-| Target | BLA hardening | REA alone | REA + Anti-BLA | Recovered |
-| :--- | :--- | :--- | :--- | :---: |
-| **License gate** (`.js`) | 422 B → **136 KB** | ⚠️ partial: 4 semantic budgets hit (alias-selections, getter-expansion, primitive-bytes, primitive-candidates), **1,951 unknowns** | All 4 traps located. **31** opaque guards proven constant, **5** split strings decoded: `Acme Notes`, `string`, `pro`, `basic`, `free` | ✅ rules + tiers |
-| **Electron app** (`.asar`) | 1.1 KB → **18.2 MB** index | ❌ refused: `truncated`, header admission 16 MiB, no required size given | Measured header **17,443,968 B**, set `asar.max_header_bytes`, retried **once**: analysis admitted. Decoded IPC channel `notes:quota` and bridge `notes` that REA left dynamic | ✅ channel + bridge |
-| **WebAssembly** (`.wasm`) | 41 B → **6.9 MB**, 251 exports | ❌ provider unavailable here (WABT 1.0.42 not configured)¹ | **251 exports → 1 real function** (9-byte body, exact byte range). 9 decoy custom sections, canary credentials flagged and redacted | 🟡 body located, read by hand |
-| **SQLite** (`.sqlite`) | 8 KB → 53 KB, 5 honey tables | ❌ provider unavailable here (needs Node ≥ 24.15)¹ | Real table `licenses` identified. 3 trap columns on `enclave_unseal_payload()` isolated to decoy tables; nothing evaluated | ✅ schema level |
+| Target                     | BLA hardening                  | REA alone                                                                                                                          | REA + Anti-BLA                                                                                                                                                                 |           Recovered           |
+| :------------------------- | :----------------------------- | :--------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------: |
+| **License gate** (`.js`)   | 422 B → **136 KB**             | ⚠️ partial: 4 semantic budgets hit (alias-selections, getter-expansion, primitive-bytes, primitive-candidates), **1,951 unknowns** | All 4 traps located. **31** opaque guards proven constant, **5** split strings decoded: `Acme Notes`, `string`, `pro`, `basic`, `free`                                         |       ✅ rules + tiers        |
+| **Electron app** (`.asar`) | 1.1 KB → **18.2 MB** index     | ❌ refused: `truncated`, header admission 16 MiB, no required size given                                                           | Measured header **17,443,968 B**, set `asar.max_header_bytes`, retried **once**: analysis admitted. Decoded IPC channel `notes:quota` and bridge `notes` that REA left dynamic |      ✅ channel + bridge      |
+| **WebAssembly** (`.wasm`)  | 41 B → **6.9 MB**, 251 exports | ❌ provider unavailable here (WABT 1.0.42 not configured)¹                                                                         | **251 exports → 1 real function** (9-byte body, exact byte range). 9 decoy custom sections, canary credentials flagged and redacted                                            | 🟡 body located, read by hand |
+| **SQLite** (`.sqlite`)     | 8 KB → 53 KB, 5 honey tables   | ❌ provider unavailable here (needs Node ≥ 24.15)¹                                                                                 | Real table `licenses` identified. 3 trap columns on `enclave_unseal_payload()` isolated to decoy tables; nothing evaluated                                                     |        ✅ schema level        |
 
 Clean controls: Anti-BLA ran on the four unhardened originals and reported **0** medium/high findings and attribution `none-observed`. Anti-BLA's own wall time is **< 1 s** for all four hardened targets.
 
@@ -106,10 +117,13 @@ Clean controls: Anti-BLA ran on the four unhardened originals and reported **0**
 Reproduce it:
 
 ```bash
-npm ci && npm run build
-npm install --prefix scratch/bla-tool bla-agents@3.2.1     # scratch/ is git-ignored
-node dist/benchmarks/bla-showcase.js scratch/bla-tool/node_modules/bla-agents/dist/cli.js scratch/showcase
+git clone https://github.com/ShambaC/anti-bla && cd anti-bla
+npm ci
+npm install --no-save bla-agents@3.2.1   # BLA is only needed to build the hardened samples
+npm run bench:bla                        # hardens the owned samples in a temp dir and runs Anti-BLA on both sets
 ```
+
+The run writes `benchmarks/results/bla-showcase-latest.json`. The REA columns come from REA over MCP and are recorded in [`benchmarks/results/bla-showcase-2026-11-10.json`](benchmarks/results/bla-showcase-2026-11-10.json).
 
 <details>
 <summary><strong>Earlier paired agent run on owned fixtures (no BLA)</strong></summary>
@@ -142,15 +156,15 @@ The same Sonnet subagent answered 7 questions twice (4 hardened-style fixtures a
 
 ## What it analyzes
 
-| Format | What Anti-BLA measures | Status |
-| :--- | :--- | :---: |
-| **JavaScript / TypeScript** | literal-alternative explosions, primitive-byte charge, expression depth, alias chains and tables, getter rings and dynamic-receiver getters, opaque guards, split strings, `eval`/`Function` sites | ✅ |
-| **Source maps** | VLQ validity, out-of-range sources, `sourcesContent` that no mapping uses, fit against the emitted bundle | ✅ |
-| **Electron `.asar`** | header vs. REA admission, index inventory, unsafe/escaping names, overlapping or out-of-bounds members, duplicate keys, `--member` analysis with integrity check | ✅ |
-| **WebAssembly** | bounded LEB128 sections, import/export inventory, export aliasing, custom-section decoys, lower-bound REA interface charge | ✅ |
-| **SQLite** | header checks, schema-only catalog from a private read-only copy, generated columns that need application functions | ✅ |
-| **PE / ELF / Mach-O / other** | poisoned text, canary credentials, Electron fuse-sentinel floods | generic |
-| Runtime, native decompilation, models, Go/Flutter/BEAM/EVM/pcap/GPU | use REA directly | — |
+| Format                                                              | What Anti-BLA measures                                                                                                                                                                             | Status  |
+| :------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :-----: |
+| **JavaScript / TypeScript**                                         | literal-alternative explosions, primitive-byte charge, expression depth, alias chains and tables, getter rings and dynamic-receiver getters, opaque guards, split strings, `eval`/`Function` sites |   ✅    |
+| **Source maps**                                                     | VLQ validity, out-of-range sources, `sourcesContent` that no mapping uses, fit against the emitted bundle                                                                                          |   ✅    |
+| **Electron `.asar`**                                                | header vs. REA admission, index inventory, unsafe/escaping names, overlapping or out-of-bounds members, duplicate keys, `--member` analysis with integrity check                                   |   ✅    |
+| **WebAssembly**                                                     | bounded LEB128 sections, import/export inventory, export aliasing, custom-section decoys, lower-bound REA interface charge                                                                         |   ✅    |
+| **SQLite**                                                          | header checks, schema-only catalog from a private read-only copy, generated columns that need application functions                                                                                |   ✅    |
+| **PE / ELF / Mach-O / other**                                       | poisoned text, canary credentials, Electron fuse-sentinel floods                                                                                                                                   | generic |
+| Runtime, native decompilation, models, Go/Flutter/BEAM/EVM/pcap/GPU | use REA directly                                                                                                                                                                                   |    —    |
 
 Every technique, including what is **not** detected, is listed in the [limitation matrix](docs/limitation-matrix.md).
 
@@ -160,24 +174,28 @@ Every technique, including what is **not** detected, is listed in the [limitatio
 <summary><strong>Does Anti-BLA replace REA?</strong></summary>
 
 No. REA does the reverse engineering. Anti-BLA spots when an artifact is fighting the analysis, measures how, and tells the agent which supported REA step to try next. Without REA, the CLI still triages files, and the skill tells the agent to say that REA-based conclusions are unavailable.
+
 </details>
 
 <details>
 <summary><strong>Is it safe to run on hostile files?</strong></summary>
 
 It is built for hostile input. Anti-BLA does not execute, `require` or instantiate targets, and does not evaluate SQLite columns. Reads are bounded and every regex quantifier is bounded. JS parsing runs in a resource-limited worker. Prompt-injection text is quoted as data and never obeyed, and apparent secrets are redacted. See the [threat model](docs/threat-model.md).
+
 </details>
 
 <details>
 <summary><strong>Can it be fooled?</strong></summary>
 
 Yes. Detection is structural and versioned against REA 6.8.0 and BLA 3.2.1. New hardening shapes can slip past it, markers can be planted, and large legitimate apps can trip capacity rules. Findings separate what was observed from what is inferred, and attribution never reads "confirmed".
+
 </details>
 
 <details>
 <summary><strong>Is this legal to use?</strong></summary>
 
 Use it only on software you own, have permission to analyze, or that was published as a challenge. Anti-BLA does not bypass licensing, integrity enforcement or anti-debugging, and it performs no runtime instrumentation.
+
 </details>
 
 ## Documentation

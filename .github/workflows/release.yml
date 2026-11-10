@@ -1,0 +1,72 @@
+name: release
+
+# Publishes to npm when a GitHub Release is published (tag vX.Y.Z or X.Y.Z matching package.json).
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run every step but use npm publish --dry-run'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write # npm provenance (and npm trusted publishing, if configured)
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+
+      - name: Upgrade npm (trusted publishing needs npm >= 11.5.1)
+        run: npm install --global npm@latest
+
+      - name: Check versions agree with the release tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const v = require("./package.json").version;
+            const tag = (process.env.TAG || "").replace(/^v/, "");
+            const errs = [];
+            if (tag && tag !== v) errs.push(`release tag ${process.env.TAG} != package.json ${v}`);
+            for (const f of [".claude-plugin/plugin.json", ".codex-plugin/plugin.json"]) {
+              const pv = JSON.parse(fs.readFileSync(f, "utf8")).version;
+              if (pv !== v) errs.push(`${f} version ${pv} != ${v}`);
+            }
+            if (errs.length) { console.error(errs.join("\n")); process.exit(1); }
+            console.log(`version ${v} OK`);
+          '
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: node dist/scripts/check-skill.js
+
+      - name: Publish (dry run)
+        if: github.event_name == 'workflow_dispatch' && inputs.dry_run
+        run: npm publish --dry-run --provenance --access public
+
+      - name: Publish
+        if: github.event_name == 'release' || !inputs.dry_run
+        run: npm publish --provenance --access public
+        env:
+          # Leave the secret unset once npm trusted publishing is configured; npm then uses OIDC.
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

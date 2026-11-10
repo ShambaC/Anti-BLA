@@ -1,12 +1,13 @@
 // BLA-vs-Anti-BLA showcase (reproducible part).
-//   npm install --prefix scratch/bla-tool bla-agents@3.2.1
-//   node dist/benchmarks/bla-showcase.js scratch/bla-tool/node_modules/bla-agents/dist/cli.js scratch/showcase
+//   npm install --no-save bla-agents@3.2.1   (BLA is never a dependency of anti-bla)
+//   npm run bench:bla                        (optional args: <bla dist/cli.js> <work dir>)
 // Builds an owned clean corpus, hardens it with BLA (bankrupt, fixed seed), runs Anti-BLA on both sets and
 // writes benchmarks/results/bla-showcase-latest.json. REA runs are recorded separately (see README).
 // Only `node <bla cli>` and `node <anti-bla cli>` are spawned, with argument arrays; hardened output is never executed.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildAsar, sqliteFixture, wasmMinimal } from '../scripts/generate-fixtures.js';
@@ -54,9 +55,9 @@ function triage(dir: string): AntiBlaReport {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const [blaCli, outArg] = process.argv.slice(2);
-  if (!blaCli || !outArg) { console.error('usage: bla-showcase <bla dist/cli.js> <work dir>'); process.exit(2); }
-  const work = resolve(outArg);
+  const blaCli = process.argv[2] ?? join(ROOT, 'node_modules', 'bla-agents', 'dist', 'cli.js');
+  if (!existsSync(blaCli)) { console.error(`BLA CLI not found at ${blaCli}. Run: npm install --no-save bla-agents@3.2.1`); process.exit(2); }
+  const work = process.argv[3] ? resolve(process.argv[3]) : mkdtempSync(join(tmpdir(), 'anti-bla-showcase-'));
   const clean = join(work, 'clean');
   const hard = join(work, 'hardened');
   await buildCorpus(clean);

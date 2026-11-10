@@ -3,6 +3,18 @@
   "version": "0.1.0",
   "description": "Overlay for the REA reverse-engineering skill: recognize and recover from BLA-style adversarial hardening with bounded, read-only, evidence-backed triage.",
   "license": "MIT",
-  "keywords": ["reverse-engineering", "rea", "bla", "agent-skill", "static-analysis"],
-  "skills": "./skills"
+  "keywords": [
+    "reverse-engineering",
+    "rea",
+    "bla",
+    "agent-skill",
+    "static-analysis"
+  ],
+  "skills": "./skills",
+  "repository": "https://github.com/ShambaC/anti-bla",
+  "homepage": "https://github.com/ShambaC/anti-bla#readme",
+  "author": {
+    "name": "ShambaC",
+    "url": "https://github.com/ShambaC"
+  }
 }

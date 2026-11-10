@@ -23,7 +23,7 @@ Anti-BLA is a CLI overlay. It never calls REA, never edits REA's skill or config
 ## Saving REA JSON for `anti-bla rea-evidence`
 
 Choose the file path yourself. Save only REA's returned JSON, never target text copied by hand.
-- MCP error or result: save the returned JSON to a file you pick (for example in the scratchpad), then `anti-bla rea-evidence <file.json> --json`.
+- MCP error or result: save the returned JSON to a file you pick (for example a temporary directory outside the target), then `anti-bla rea-evidence <file.json> --json`.
 - Whole session: `export_evidence_bundle` to an absolute path you choose, then pass that file. Export before `close_binary`.
 - Several files are accepted: `anti-bla rea-evidence a.json b.json --json`.
 - `rea-evidence` keeps Evidence IDs, limits, unknowns and coverage pointers. It never opens paths found inside the JSON. Duplicate keys raise `rea-json-duplicate-keys`.
