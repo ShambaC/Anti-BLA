@@ -37,12 +37,12 @@ export function makeFinding(f: FindingInput): Finding {
 
 const CREDENTIAL_SHAPES: RegExp[] = [
   /AKIA[0-9A-Z]{16}/g,
-  /gh[pousr]_[A-Za-z0-9]{20,}/g,
-  /sk-[A-Za-z0-9_-]{16,}/g,
-  /xox[abprs]-[A-Za-z0-9-]{10,}/g,
-  /eyJ[A-Za-z0-9_-]{8,}\.eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g,
-  /(Bearer\s+)[A-Za-z0-9._~+/=-]{16,}/g,
-  /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(-----END [A-Z ]*PRIVATE KEY-----|$)/g,
+  /gh[pousr]_[A-Za-z0-9]{20,255}/g,
+  /sk-[A-Za-z0-9_-]{16,255}/g,
+  /xox[abprs]-[A-Za-z0-9-]{10,255}/g,
+  /eyJ[A-Za-z0-9_-]{8,2048}\.eyJ[A-Za-z0-9_-]{8,2048}\.[A-Za-z0-9_-]{8,2048}/g,
+  /(Bearer[ \t]{1,5})[A-Za-z0-9._~+/=-]{16,2048}/g,
+  /-----BEGIN [A-Z ]{0,40}PRIVATE KEY-----[\s\S]{0,8192}?(-----END [A-Z ]{0,40}PRIVATE KEY-----|$)/g,
 ];
 
 /** Redact credential-shaped substrings so reports never echo apparent secrets verbatim. */
@@ -57,8 +57,18 @@ export function redact(text: string): string {
   return s;
 }
 
+const hex4 = (n: number) => n.toString(16).padStart(4, '0');
+/** C0/C1 controls, line/paragraph separators and bidi overrides (built from code points to keep the source ASCII). */
+export const CONTROL_CHARS = new RegExp(
+  '[' + [[0x0, 0x1f], [0x7f, 0x9f], [0x2028, 0x2029], [0x202a, 0x202e], [0x2066, 0x2069]].map(([a, b]) => `\\u${hex4(a!)}-\\u${hex4(b!)}`).join('') + ']',
+  'g',
+);
+
 /** Bounded, single-line, control-free, redacted preview of untrusted text. */
 export function preview(text: string, maxChars: number): string {
+  // Never run the redaction regexes over unbounded input; the tail is reported only as a length.
+  const extra = Math.max(0, text.length - maxChars * 4);
+  if (extra) return preview(text.slice(0, maxChars * 4), maxChars) + `…(+${extra}ch)`;
   const flat = text.replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g, ' ').replace(/\s+/g, ' ').trim();
   const red = redact(flat);
   return red.length > maxChars ? red.slice(0, maxChars) + `…(+${red.length - maxChars}ch)` : red;

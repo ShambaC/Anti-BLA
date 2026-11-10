@@ -17,6 +17,8 @@ export interface AsarMember {
   link: string | null;
 }
 
+const MAX_INDEX_DEPTH = 256;
+
 function unsafeName(n: string): boolean {
   return n === '' || n === '.' || n === '..' || /[\\/\u0000]/.test(n);
 }
@@ -129,9 +131,12 @@ export async function analyzeAsar(ctx: AnalyzeContext): Promise<AnalyzerResult &
   let nodeCap = false;
   const stack: { node: unknown; path: string; depth: number }[] = [{ node: root, path: '', depth: 0 }];
   let maxDepth = 0;
+  let depthCapped = false;
   while (stack.length) {
     const { node, path, depth } = stack.pop()!;
     if (members.length + dirs > ctx.budget.limits.maxAstNodes) { nodeCap = true; break; }
+    // Path strings grow with depth; cap nesting so hostile indexes cannot cost O(depth^2) memory.
+    if (depth > MAX_INDEX_DEPTH) { depthCapped = true; continue; }
     if (depth > maxDepth) maxDepth = depth;
     if (!node || typeof node !== 'object') { badEntries.push(path || '/'); continue; }
     const n = node as Record<string, unknown>;
@@ -164,6 +169,7 @@ export async function analyzeAsar(ctx: AnalyzeContext): Promise<AnalyzerResult &
     if (!Number.isSafeInteger(offset) || offset + size > dataBytes) outOfBounds.push(path);
     members.push({ path, offset, size, unpacked, integrityHash, link: null });
   }
+  if (depthCapped) { limitations.push(`Index entries nested deeper than ${MAX_INDEX_DEPTH} levels were not walked.`); unknowns.push(`${lp}: entries below index depth ${MAX_INDEX_DEPTH}.`); }
   if (nodeCap) { limitations.push(`Index walk stopped at ${ctx.budget.limits.maxAstNodes} entries.`); unknowns.push(`${lp}: entries beyond the walk cap.`); }
 
   const idxRef = byteRef(sha, lp, 16, 16 + jsonBytes, 'JSON index', 'format');
@@ -245,6 +251,6 @@ export async function analyzeAsar(ctx: AnalyzeContext): Promise<AnalyzerResult &
   }
   const mf = markerFinding(markers);
   if (mf) findings.push(mf);
-  const status = nodeCap || dups.length ? 'partial' : 'complete';
+  const status = nodeCap || depthCapped || dups.length ? 'partial' : 'complete';
   return { status, format: 'asar', formatConfidence: 'high', findings, limitations, unknowns, facts, suggestedActions: actions, ...(selectedMember ? { selectedMember } : {}) };
 }

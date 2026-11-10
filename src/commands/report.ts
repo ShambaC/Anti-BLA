@@ -14,7 +14,7 @@ export async function runReport(input: string, format: string): Promise<string> 
   try { size = (await stat(path)).size; } catch { throw new UsageError(`Report not found: ${path}`, 'not_found'); }
   if (size > MAX_REPORT_BYTES) throw new UsageError(`Report larger than ${MAX_REPORT_BYTES} bytes`);
   let parsed: unknown;
-  try { parsed = JSON.parse(await readFile(path, 'utf8')); } catch (e) { throw new UsageError(`Report is not valid JSON: ${(e as Error).message}`, 'invalid_report'); }
+  try { parsed = JSON.parse((await readFile(path, 'utf8')).replace(/^\uFEFF/, '')); } catch (e) { throw new UsageError(`Report is not valid JSON: ${(e as Error).message}`, 'invalid_report'); }
   const errs = validateReport(parsed);
   if (errs.length) throw new UsageError(`Not an anti-bla-report/v1 document: ${errs.join('; ')}`, 'invalid_report');
   if (format === 'markdown' || format === 'md') return toMarkdown(parsed as AntiBlaReport);

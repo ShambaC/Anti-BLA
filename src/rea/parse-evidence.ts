@@ -1,5 +1,6 @@
 // Version-aware, bounded extraction from REA Evidence / error JSON. Never opens paths found inside it.
 import type { ReaRecordSummary } from '../core/types.js';
+import { preview } from '../core/findings.js';
 import { PATTERNS } from './failure-catalog.js';
 import { EVIDENCE_ID_RE, LIMIT_KEYS, isObj, looksLikeError, looksLikeEvidence, type Json, type JsonObject } from './evidence-schema.js';
 
@@ -9,7 +10,9 @@ const MAX_STRINGS = 200;
 const MAX_STRING = 2000;
 
 const esc = (k: string) => k.replace(/~/g, '~0').replace(/\//g, '~1');
-const clip = (s: string) => (s.length > MAX_STRING ? s.slice(0, MAX_STRING) + `…(+${s.length - MAX_STRING}ch)` : s);
+export const WALK_CAP = 'Anti-BLA stopped walking normalized_result at its node/depth cap; some fields were not summarized.';
+// REA strings embed target-derived text: flatten, strip controls, redact credentials, bound length.
+const clip = (s: string) => preview(s, MAX_STRING);
 
 export interface ParsedRea {
   records: ReaRecordSummary[];
@@ -23,12 +26,16 @@ export interface ParsedRea {
 export function locateRecords(root: Json, inputPath: string): ParsedRea {
   const out: ParsedRea = { records: [], raw: [], nodeCapHit: false, unknownShape: false };
   const queue: { v: Json; ptr: string; depth: number }[] = [{ v: root, ptr: '', depth: 0 }];
-  let nodes = 0;
-  while (queue.length) {
-    const { v, ptr, depth } = queue.shift()!;
-    if (++nodes > MAX_NODES) { out.nodeCapHit = true; break; }
+  // Index-pointer queue; children are enqueued only while under the node cap (no allocation past it).
+  let head = 0;
+  const enqueue = (v: Json, ptr: string, depth: number) => {
+    if (depth > MAX_DEPTH || queue.length >= MAX_NODES) { out.nodeCapHit = true; return; }
+    queue.push({ v, ptr, depth });
+  };
+  while (head < queue.length) {
+    const { v, ptr, depth } = queue[head++]!;
     if (Array.isArray(v)) {
-      if (depth < MAX_DEPTH) v.forEach((x, i) => queue.push({ v: x, ptr: `${ptr}/${i}`, depth: depth + 1 }));
+      for (let i = 0; i < v.length && !out.nodeCapHit; i++) enqueue(v[i]!, `${ptr}/${i}`, depth + 1);
       continue;
     }
     if (!isObj(v)) continue;
@@ -38,13 +45,14 @@ export function locateRecords(root: Json, inputPath: string): ParsedRea {
     if (Array.isArray(v.content)) {
       v.content.forEach((c, i) => {
         if (isObj(c) && c.type === 'text' && typeof c.text === 'string' && /^\s*[[{]/.test(c.text) && c.text.length < 64 * 1024 * 1024) {
-          try { queue.push({ v: JSON.parse(c.text) as Json, ptr: `${ptr}/content/${i}/text(json)`, depth: depth + 1 }); } catch { /* plain text */ }
+          try { enqueue(JSON.parse(c.text) as Json, `${ptr}/content/${i}/text(json)`, depth + 1); } catch { /* plain text */ }
         }
       });
     }
-    if (depth < MAX_DEPTH) for (const k of Object.keys(v).sort()) {
+    for (const k of Object.keys(v).sort()) {
       if (k === 'content') continue;
-      queue.push({ v: v[k]!, ptr: `${ptr}/${esc(k)}`, depth: depth + 1 });
+      if (out.nodeCapHit) break;
+      enqueue(v[k]!, `${ptr}/${esc(k)}`, depth + 1);
     }
   }
   if (out.records.length === 0) {
@@ -93,8 +101,9 @@ function walkResult(root: Json, base: string, s: ReaRecordSummary): void {
   let nodes = 0;
   while (st.length) {
     const { v, ptr, depth } = st.pop()!;
-    if (++nodes > MAX_NODES || depth > MAX_DEPTH) { s.limitations.push('Anti-BLA stopped walking normalized_result at its node/depth cap; later fields not summarized.'); return; }
-    if (Array.isArray(v)) { for (let i = v.length - 1; i >= 0; i--) st.push({ v: v[i]!, ptr: `${ptr}/${i}`, depth: depth + 1 }); continue; }
+    if (++nodes > MAX_NODES) { s.limitations.push(WALK_CAP); return; }
+    if (depth > MAX_DEPTH) { if (!s.limitations.includes(WALK_CAP)) s.limitations.push(WALK_CAP); continue; }
+    if (Array.isArray(v)) { for (let i = Math.min(v.length, MAX_NODES) - 1; i >= 0; i--) st.push({ v: v[i]!, ptr: `${ptr}/${i}`, depth: depth + 1 }); continue; }
     if (!isObj(v)) continue;
     if (depth === 0 && typeof v.parent_evidence_id === 'string') s.parentEvidenceId = v.parent_evidence_id;
     if (typeof v.resourceLimit === 'string') s.resourceLimits.push(v.resourceLimit);

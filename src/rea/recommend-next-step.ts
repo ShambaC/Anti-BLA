@@ -2,7 +2,7 @@
 // Anti-BLA never calls REA; every rea-tool action requires the host to verify the live tools/list schema.
 import { makeFinding } from '../core/findings.js';
 import type { EvidenceRef, Finding, ReaRecordSummary, SuggestedAction } from '../core/types.js';
-import { CATALOG_UPSTREAM, PATTERNS, type CatalogPattern } from './failure-catalog.js';
+import { CATALOG_UPSTREAM, EDITABLE_SETTINGS, PATTERNS, type CatalogPattern } from './failure-catalog.js';
 
 const SCHEMA_CHECK = 'Verify the connected REA tools/list advertises this operation and the hinted fields; parametersHint is advisory only.';
 
@@ -73,9 +73,15 @@ export function recommend(records: ReaRecordSummary[]): { findings: Finding[]; a
 
     // asar.max_header_bytes / any agent-editable setting carried in details.limit
     const lim = r.error?.limit;
-    if (lim && typeof lim.setting === 'string') {
-      const required = typeof lim.required_value === 'number' ? lim.required_value : undefined;
+    const knownSetting = lim && typeof lim.setting === 'string' && /^[a-z0-9_.]{1,64}$/.test(lim.setting) && EDITABLE_SETTINGS.has(lim.setting);
+    if (lim && typeof lim.setting === 'string' && !knownSetting) {
+      actions.push({ kind: 'manual-review', title: 'REA error names a setting Anti-BLA does not recognize', rationale: 'The setting is not in the pinned REA 6.8.0 editable list; Anti-BLA will not suggest changing it. Check the live update_analysis_settings schema.', prerequisites: [SCHEMA_CHECK], risk: 'read-only', relatedEvidenceIds: ids });
+    } else if (lim && typeof lim.setting === 'string') {
       const max = typeof lim.maximum === 'number' ? lim.maximum : undefined;
+      const min = typeof lim.minimum === 'number' ? lim.minimum : undefined;
+      const rawRequired = typeof lim.required_value === 'number' && Number.isSafeInteger(lim.required_value) ? lim.required_value : undefined;
+      // Never suggest below the reported minimum; values above the maximum become a stop action below.
+      const required = rawRequired !== undefined && min !== undefined ? Math.max(rawRequired, min) : rawRequired;
       const editable = lim.agent_editable === true;
       const invocation = lim.scope === 'rea-invocation';
       if (!editable) {

@@ -47,6 +47,7 @@ class Reader {
   }
 }
 
+const MAX_SECTIONS = 10_000;
 const ORDER: Record<number, number> = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 13: 6, 6: 7, 7: 8, 8: 9, 9: 10, 12: 11, 10: 12, 11: 13 };
 const SECTION_NAMES: Record<number, string> = { 0: 'custom', 1: 'type', 2: 'import', 3: 'function', 4: 'table', 5: 'memory', 6: 'global', 7: 'export', 8: 'start', 9: 'element', 10: 'code', 11: 'data', 12: 'datacount', 13: 'tag' };
 const TOOLCHAIN_CUSTOM = /^(name|producers|target_features|sourceMappingURL|external_debug_info|linking|dylink(\.0)?|reloc\..*|\.debug_.*|metadata\.code\..*|build_id)$/;
@@ -85,6 +86,10 @@ export async function analyzeWasm(ctx: AnalyzeContext): Promise<AnalyzerResult> 
   const seenIds = new Set<number>();
   let pos = 8;
   let parseError: WasmError | null = null;
+  let sectionsNotListed = 0;
+  let structuralCount = 0;
+  // Bounded bookkeeping: a hostile module can declare millions of empty sections.
+  const pushStructural = (x: { msg: string; offset: number }) => { structuralCount++; if (structural.length < 100) structural.push(x); };
 
   try {
     while (pos < b.length) {
@@ -101,10 +106,10 @@ export async function analyzeWasm(ctx: AnalyzeContext): Promise<AnalyzerResult> 
       const sec: (typeof sections)[number] = { id, name: SECTION_NAMES[id] ?? `unknown(${id})`, start: pos, end };
       if (id !== 0) {
         const rank = ORDER[id];
-        if (rank === undefined) structural.push({ msg: `unknown section id ${id}`, offset: pos });
+        if (rank === undefined) pushStructural({ msg: `unknown section id ${id}`, offset: pos });
         else {
-          if (seenIds.has(id)) structural.push({ msg: `duplicate ${sec.name} section`, offset: pos });
-          else if (rank < lastRank) structural.push({ msg: `${sec.name} section out of order`, offset: pos });
+          if (seenIds.has(id)) pushStructural({ msg: `duplicate ${sec.name} section`, offset: pos });
+          else if (rank < lastRank) pushStructural({ msg: `${sec.name} section out of order`, offset: pos });
           seenIds.add(id);
           lastRank = Math.max(lastRank, rank);
         }
@@ -147,7 +152,8 @@ export async function analyzeWasm(ctx: AnalyzeContext): Promise<AnalyzerResult> 
           break;
         }
       }
-      sections.push(sec);
+      if (sections.length < MAX_SECTIONS) sections.push(sec);
+      else sectionsNotListed++;
       pos = end;
     }
   } catch (e) {
@@ -155,6 +161,7 @@ export async function analyzeWasm(ctx: AnalyzeContext): Promise<AnalyzerResult> 
     parseError = e;
   }
 
+  if (sectionsNotListed) limitations.push(`${sectionsNotListed} section(s) beyond the first ${MAX_SECTIONS} were parsed but not listed; custom-section facts cover listed sections only.`);
   let engineValid: boolean | null = null;
   if (!ctx.truncated) {
     try { engineValid = WebAssembly.validate(new Uint8Array(b)); } catch { engineValid = false; }
@@ -165,10 +172,10 @@ export async function analyzeWasm(ctx: AnalyzeContext): Promise<AnalyzerResult> 
     unknowns.push(`${lp}: sections after byte ${parseError.offset}.`);
   }
   if (structural.length) {
-    findings.push(makeFinding({ rule: 'wasm-section-order', classification: 'analysis-limitation', title: 'Invalid section ordering', observation: structural.map((s) => `${s.msg} @${s.offset}`).slice(0, 10).join('; '), interpretation: 'Spec-invalid module; engines reject it, but lenient tools may read different content.', confidence: 'high', evidence: structural.slice(0, 10).map((s) => byteRef(sha, lp, s.offset, s.offset + 1, s.msg, 'format')) }));
+    findings.push(makeFinding({ rule: 'wasm-section-order', classification: 'analysis-limitation', title: 'Invalid section ordering', observation: `${structuralCount} ordering problem(s): ` + structural.map((s) => `${s.msg} @${s.offset}`).slice(0, 10).join('; '), interpretation: 'Spec-invalid module; engines reject it, but lenient tools may read different content.', confidence: 'high', evidence: structural.slice(0, 10).map((s) => byteRef(sha, lp, s.offset, s.offset + 1, s.msg, 'format')) }));
   }
   if (dupExports.length) {
-    findings.push(makeFinding({ rule: 'wasm-duplicate-exports', classification: 'analysis-limitation', title: 'Duplicate export names', observation: `Duplicates: ${dupExports.map((n) => JSON.stringify(preview(n, 60))).join(', ')}.`, interpretation: 'Spec-invalid; tools may disagree on which export a name denotes.', confidence: 'high', evidence: sections.filter((s) => s.id === 7).map((s) => byteRef(sha, lp, s.start, s.end, 'export section', 'format')) }));
+    findings.push(makeFinding({ rule: 'wasm-duplicate-exports', classification: 'analysis-limitation', title: 'Duplicate export names', observation: `Duplicates: ${dupExports.map((n) => JSON.stringify(preview(n, 60))).join(', ')}.`, interpretation: 'Spec-invalid; tools may disagree on which export a name denotes.', confidence: 'high', evidence: sections.filter((s) => s.id === 7).slice(0, 10).map((s) => byteRef(sha, lp, s.start, s.end, 'export section', 'format')) }));
   }
 
   const customs = sections.filter((s) => s.id === 0);
@@ -189,6 +196,7 @@ export async function analyzeWasm(ctx: AnalyzeContext): Promise<AnalyzerResult> 
   const markers: ReturnType<typeof scanSegments>['blaMarkers'] = [];
   let scanned = 0;
   for (const s of customs) {
+    if (ctx.budget.timedOut()) { limitations.push('Custom-section text scan stopped: time budget exhausted.'); break; }
     const n = Math.min(s.end - s.start, ctx.budget.limits.maxScanBytes - scanned);
     if (n <= 0) { limitations.push('Custom-section text scan stopped at the scan budget.'); break; }
     const sc = scanSegments(asciiSegments(b.subarray(s.start, s.start + n), s.start), sha, lp, ctx.budget, `custom section "${preview(s.customName ?? '', 40)}"`);
@@ -206,7 +214,7 @@ export async function analyzeWasm(ctx: AnalyzeContext): Promise<AnalyzerResult> 
   const reaLimit = limit('wasm.interfaceRepresentationBytes');
   if (reaChargeLowerBound > reaLimit / 2) {
     const exceeds = reaChargeLowerBound > reaLimit;
-    const exportSec = sections.filter((s) => s.id === 7 || s.id === 2);
+    const exportSec = sections.filter((s) => s.id === 7 || s.id === 2).slice(0, 10);
     findings.push(makeFinding({
       rule: 'wasm-interface-representation',
       classification: 'resource-limit',
@@ -228,7 +236,7 @@ export async function analyzeWasm(ctx: AnalyzeContext): Promise<AnalyzerResult> 
     });
   }
   if (exportCount > 0 && funcCount > 0 && exportCount > funcCount * 4 && exportCount > 64) {
-    findings.push(makeFinding({ rule: 'wasm-export-inflation', classification: 'possible-decoy', title: 'Many more exports than defined functions', observation: `${exportCount} exports for ${funcCount} defined functions.`, interpretation: 'Many names aliasing few functions inflate the interface; an export name says nothing about whether JS calls it.', confidence: 'medium', evidence: sections.filter((s) => s.id === 7).map((s) => byteRef(sha, lp, s.start, s.end, 'export section', 'format')), metrics: { exports: exportCount, functions: funcCount } }));
+    findings.push(makeFinding({ rule: 'wasm-export-inflation', classification: 'possible-decoy', title: 'Many more exports than defined functions', observation: `${exportCount} exports for ${funcCount} defined functions.`, interpretation: 'Many names aliasing few functions inflate the interface; an export name says nothing about whether JS calls it.', confidence: 'medium', evidence: sections.filter((s) => s.id === 7).slice(0, 10).map((s) => byteRef(sha, lp, s.start, s.end, 'export section', 'format')), metrics: { exports: exportCount, functions: funcCount } }));
   }
   if (engineValid === false && !parseError && structural.length === 0) {
     limitations.push('The V8 engine rejected the module although the section framing parsed; body-level validity issues exist.');

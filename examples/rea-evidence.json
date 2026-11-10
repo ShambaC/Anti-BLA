@@ -2,7 +2,7 @@
   "schemaVersion": "anti-bla-report/v1",
   "command": "rea-evidence",
   "analysisStatus": "complete",
-  "analyzedAt": "2026-11-10T06:24:45.411Z",
+  "analyzedAt": "2026-11-10T06:40:55.901Z",
   "toolVersion": "0.1.0",
   "artifacts": [
     {
@@ -275,7 +275,7 @@
     "basis": []
   },
   "budgets": {
-    "elapsedMs": 73,
+    "elapsedMs": 78,
     "bytesRead": 2103526,
     "bytesHashed": 2103526,
     "truncated": false,

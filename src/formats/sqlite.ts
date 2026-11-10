@@ -9,7 +9,10 @@ import { byteRef } from '../core/provenance.js';
 import type { AnalyzeContext, AnalyzerResult, EvidenceRef, Finding, SuggestedAction } from '../core/types.js';
 import { markerFinding, scanSegments } from './generic.js';
 
-const SQL_WORDS = new Set(['and', 'or', 'not', 'in', 'is', 'as', 'cast', 'case', 'when', 'then', 'else', 'end', 'exists', 'between', 'like', 'glob', 'regexp', 'match', 'collate', 'escape', 'select', 'from', 'where', 'values', 'over', 'filter', 'partition', 'references', 'check', 'default', 'primary', 'key', 'unique', 'foreign', 'generated', 'always', 'stored', 'virtual', 'table', 'index', 'on', 'using', 'constraint', 'null', 'integer', 'text', 'real', 'blob', 'numeric', 'varchar', 'char', 'decimal', 'int', 'any', 'boolean', 'date', 'datetime', 'float', 'double', 'character', 'nvarchar', 'nchar', 'varying']);
+const SQL_WORDS = new Set(['and', 'or', 'not', 'in', 'is', 'as', 'cast', 'case', 'when', 'then', 'else', 'end', 'exists', 'between', 'like', 'glob', 'regexp', 'match', 'collate', 'escape', 'select', 'from', 'where', 'values', 'over', 'filter', 'partition', 'references', 'check', 'default', 'primary', 'key', 'unique', 'foreign', 'generated', 'always', 'stored', 'virtual', 'table', 'index', 'on', 'using', 'constraint', 'null', 'integer', 'text', 'real', 'blob', 'numeric', 'varchar', 'char', 'decimal', 'int', 'any', 'boolean', 'date', 'datetime', 'float', 'double', 'character', 'nvarchar', 'nchar', 'varying', 'into', 'join', 'having', 'limit', 'offset', 'group', 'order', 'by', 'union', 'with', 'recursive', 'returning', 'set', 'update', 'insert', 'delete', 'replace', 'raise', 'distinct', 'all', 'window', 'range', 'rows', 'json_each', 'json_tree']);
+
+/** Built-ins that exist only in some SQLite builds/versions; never treated as application-defined. */
+const OPTIONAL_BUILTINS = new Set(['acos', 'acosh', 'asin', 'asinh', 'atan', 'atan2', 'atanh', 'ceil', 'ceiling', 'cos', 'cosh', 'degrees', 'exp', 'floor', 'ln', 'log', 'log10', 'log2', 'mod', 'pi', 'pow', 'power', 'radians', 'sin', 'sinh', 'sqrt', 'tan', 'tanh', 'trunc', 'unhex', 'concat', 'concat_ws', 'octet_length', 'timediff', 'format', 'printf', 'string_agg', 'unistr', 'unistr_quote', 'iif', 'if', 'median', 'percentile', 'percentile_cont', 'percentile_disc', 'jsonb', 'jsonb_extract', 'jsonb_object', 'jsonb_array', 'jsonb_set', 'jsonb_insert', 'jsonb_replace', 'jsonb_remove', 'jsonb_patch', 'jsonb_group_array', 'jsonb_group_object', 'json_pretty', 'regexp', 'soundex', 'load_extension']);
 
 /** Function-call names in an SQL expression, skipping string literals, quoted identifiers and comments. */
 export function sqlFunctionNames(expr: string): string[] {
@@ -114,6 +117,7 @@ export async function analyzeSqlite(ctx: AnalyzeContext): Promise<AnalyzerResult
   const tableCols = new Map<string, Row[]>();
   const openErrors: string[] = [];
   let functionList: Set<string> | null = null;
+  let sqliteVersion = 'unknown';
   try {
     // Copy the bytes already read (and budget-charged), so SQLite never touches the target path.
     await writeFile(copy, ctx.bytes, { flag: 'wx' });
@@ -123,6 +127,7 @@ export async function analyzeSqlite(ctx: AnalyzeContext): Promise<AnalyzerResult
       const cap = ctx.budget.limits.maxListEntries * 10;
       schema = db.prepare(`SELECT type, name, tbl_name, sql FROM sqlite_master ORDER BY type, name LIMIT ${cap + 1}`).all() as Row[];
       if (schema.length > cap) { limitations.push(`Schema listing capped at ${cap} objects.`); schema = schema.slice(0, cap); }
+      try { sqliteVersion = String((db.prepare('SELECT sqlite_version() AS v').get() as Row).v); } catch { /* keep unknown */ }
       try {
         functionList = new Set((db.prepare('SELECT DISTINCT name FROM pragma_function_list').all() as Row[]).map((r) => String(r.name).toLowerCase()));
       } catch { functionList = null; }
@@ -164,13 +169,16 @@ export async function analyzeSqlite(ctx: AnalyzeContext): Promise<AnalyzerResult
     generatedCols += gen.length;
     if (gen.length === 0) continue;
     const fns = generatedExpressions(t.sql).flatMap(sqlFunctionNames);
-    const missing = functionList ? [...new Set(fns)].filter((f) => !functionList!.has(f)) : [];
+    const absent = functionList ? [...new Set(fns)].filter((f) => !functionList!.has(f)) : [];
+    const optional = absent.filter((f) => OPTIONAL_BUILTINS.has(f));
+    if (optional.length) limitations.push(`Generated columns of ${preview(String(t.name), 40)} use ${optional.join(', ')}: built-in in some SQLite builds but absent here (SQLite ${sqliteVersion}); not treated as application-defined.`);
+    const missing = absent.filter((f) => !OPTIONAL_BUILTINS.has(f));
     if (missing.length) traps.push({ table: String(t.name), columns: gen.map((c) => String(c.name)), functions: missing, ref: locate(t.sql) });
   }
   const viewsNeedingFns: string[] = [];
   for (const v of schema) {
     if ((v.type !== 'view' && v.type !== 'trigger') || typeof v.sql !== 'string' || !functionList) continue;
-    if (sqlFunctionNames(v.sql).some((f) => !functionList!.has(f))) viewsNeedingFns.push(`${v.type} ${preview(String(v.name), 60)}`);
+    if (sqlFunctionNames(v.sql).some((f) => !functionList!.has(f) && !OPTIONAL_BUILTINS.has(f))) viewsNeedingFns.push(`${v.type} ${preview(String(v.name), 60)}`);
   }
   if (traps.length) {
     findings.push(makeFinding({
@@ -178,6 +186,7 @@ export async function analyzeSqlite(ctx: AnalyzeContext): Promise<AnalyzerResult
       classification: 'resource-limit',
       title: 'Generated columns depend on functions this SQLite build lacks',
       observation: `${traps.length} table(s) define generated columns calling functions absent from a stock SQLite connection: ${traps.slice(0, 5).map((t) => `${preview(t.table, 40)}(${t.columns.slice(0, 4).map((c) => preview(c, 30)).join(',')}) -> ${t.functions.slice(0, 4).join(',')}()`).join('; ')}.`,
+      limitations: [`Function availability was checked against this host's SQLite ${sqliteVersion}; another build may differ.`],
       interpretation: 'Any query that selects these columns (e.g. SELECT *) needs application-defined functions, so analyzers on a bare connection fail (REA: SQLite column-evaluation failure). The column values are unknowable without the application\'s function. Matches a BLA trap-column pattern; legitimate apps also register custom functions.',
       confidence: 'high',
       evidence: traps.slice(0, 10).map((t) => t.ref),
@@ -208,6 +217,7 @@ export async function analyzeSqlite(ctx: AnalyzeContext): Promise<AnalyzerResult
 
   const count = (t: string) => schema.filter((s) => s.type === t).length;
   Object.assign(facts, {
+    analyzerSqliteVersion: sqliteVersion,
     tables: count('table'),
     views: count('view'),
     indexes: count('index'),

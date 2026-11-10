@@ -23,6 +23,8 @@ export interface ArtifactIdentity {
   detectedFormat: string;
   formatConfidence: Confidence;
   analysisStatus: AnalysisStatus;
+  /** Analyzer-specific measured facts (e.g. ASAR headerBytes, WASM export counts). Bounded; untrusted names are previewed. */
+  facts?: Record<string, unknown>;
 }
 
 export interface EvidenceRef {

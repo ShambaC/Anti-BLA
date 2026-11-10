@@ -67,7 +67,13 @@ export async function analyzeBuffer(ctx: AnalyzeContext, format: string, host: J
 }
 
 export async function analyzePath(path: string, logicalPath: string, budget: Budget, host: JsWorkerHost, opts: PipelineOptions = {}): Promise<PipelineResult | { excluded: string }> {
-  const fp = await fingerprint(path, budget);
+  let fp;
+  try {
+    fp = await fingerprint(path, budget);
+  } catch (e) {
+    // Locked, deleted or unreadable mid-scan: exclude this file, keep the batch going.
+    return { excluded: `unreadable: ${(e as NodeJS.ErrnoException).code ?? (e as Error).message.slice(0, 80)}` };
+  }
   if (!fp) {
     budget.markTruncated('time budget exhausted while hashing');
     return { excluded: 'time budget exhausted while hashing' };

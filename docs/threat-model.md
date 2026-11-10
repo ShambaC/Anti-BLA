@@ -72,7 +72,7 @@ Untrusted text handling
 - The TypeScript parser runs on hostile input inside a worker. A parser bug could crash the worker (handled) or, in the worst case, be exploitable within the Node process; worker isolation is a resource boundary, not a security sandbox.
 - `WebAssembly.validate` runs V8's WASM validator on hostile bytes, on the main thread.
 - `node:sqlite` parses a hostile database file (in a temp copy). A bug in SQLite's parser is possible. The temp copy exists briefly on disk in the OS temp directory.
-- Regex scanning is bounded by `maxScanBytes` (4 MiB per file for generic/binary text) and per-rule hit caps, but the patterns are not formally proven ReDoS-free. The overall time budget is checked between files and steps, not inside a single regex match.
+- Regex scanning is bounded by `maxScanBytes` (4 MiB per file for generic/binary text; the whole budgeted prefix for JS/TS and source maps) and per-rule hit caps. Every quantifier is bounded (e.g. `s{1,5}`, `{16,2048}`) and regression tests feed known backtracking inputs, but the patterns are not formally proven ReDoS-free. The time budget is checked between rules and files, not inside a single match. `preview()` never redacts more than `4 x maxChars` characters.
 - JS source text is scanned in full from the budgeted prefix, not limited to `maxScanBytes`.
 - Rule detection is heuristic. Absence of a finding is not evidence of absence.
 - A file can change between hashing and reading; detection is by stat stamp only, and mtime-preserving changes are missed.

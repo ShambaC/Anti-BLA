@@ -26,3 +26,6 @@ export function limit(key: LimitKey): number {
 export function limitSource(key: LimitKey): string {
   return `${catalog.limits[key].source} (rea-agents ${catalog.upstream.upstream_version}, verified ${catalog.upstream.verified_at})`;
 }
+
+/** Settings the pinned REA advertises as editable; anything else from untrusted JSON is never suggested. */
+export const EDITABLE_SETTINGS = new Set<string>(catalog.editableSettings.settings);

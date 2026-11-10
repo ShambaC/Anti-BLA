@@ -155,12 +155,16 @@ export async function walk(rootArg: string, budget: Budget): Promise<WalkResult>
       excluded.push({ path: logical, reason: `lstat failed: ${(e as NodeJS.ErrnoException).code ?? 'error'}` });
       continue;
     }
-    const key = `${st.dev}:${st.ino}`;
-    if (st.ino !== 0 && seen.has(key)) {
+    // BigInt inode: NTFS file IDs exceed 2^53 and would collide as plain numbers.
+    let ino = 0n;
+    let dev = 0n;
+    try { const b = await stat(p, { bigint: true }); ino = b.ino; dev = b.dev; } catch { /* keep 0: no dedupe */ }
+    const key = `${dev}:${ino}`;
+    if (ino !== 0n && seen.has(key)) {
       excluded.push({ path: logical, reason: 'alias of an already-listed file or directory (hard link / symlink)' });
       continue;
     }
-    if (st.ino !== 0) seen.add(key);
+    if (ino !== 0n) seen.add(key);
     if (st.isDirectory()) {
       if (depth > budget.limits.maxDepth) {
         excluded.push({ path: logical, reason: `max depth ${budget.limits.maxDepth} reached` });

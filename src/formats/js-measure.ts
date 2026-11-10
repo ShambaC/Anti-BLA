@@ -235,8 +235,13 @@ export function measure(ts: typeof tsType, job: JsJob): JsMeasurements {
   }
   for (const v of shapeCounts.values()) if (v.count > m.duplicateShapes.largestGroup) { m.duplicateShapes.largestGroup = v.count; m.duplicateShapes.site = v.site; }
   m.imports = [...new Set(m.imports)].sort().slice(0, 200);
-  const smu = /\/\/[#@]\s*sourceMappingURL=([^\s'"]+)\s*$/m.exec(job.text.slice(-4096));
-  m.sourceMappingUrl = smu ? smu[1]!.slice(0, 2048) : null;
+  // Last `//# sourceMappingURL=` comment, taken whole (inline maps can be megabytes); never truncated mid-escape.
+  const at = job.text.lastIndexOf('sourceMappingURL=');
+  if (at >= 3 && /\/\/[#@][ \t]{0,3}$/.test(job.text.slice(Math.max(0, at - 6), at))) {
+    let end = at + 17;
+    while (end < job.text.length && !/[\s'"]/.test(job.text[end]!)) end++;
+    m.sourceMappingUrl = job.text.slice(at + 17, end) || null;
+  }
   return m;
 
   function recordGuard(expr: tsType.Node, value: number | boolean) {

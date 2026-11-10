@@ -19,6 +19,8 @@ export class JsWorkerHost {
       resourceLimits: { maxOldGenerationSizeMb: this.heapMb, stackSizeMb: 8 },
     }));
     w.unref();
+    // Late 'error' events (e.g. OOM racing terminate) must never become uncaught exceptions.
+    if (w.listenerCount('error') === 0) w.on('error', () => {});
     return new Promise((resolve) => {
       const done = (r: Parameters<typeof resolve>[0], kill: boolean) => {
         clearTimeout(timer);
@@ -235,15 +237,24 @@ export async function analyzeJavaScript(ctx: AnalyzeContext, host: JsWorkerHost,
 
   let sourceMap: Record<string, unknown> | null = null;
   if (m.sourceMappingUrl) {
-    sourceMap = { url: m.sourceMappingUrl.startsWith('data:') ? 'inline data: URL' : m.sourceMappingUrl };
-    if (m.sourceMappingUrl.startsWith('data:')) {
+    const inline = m.sourceMappingUrl.startsWith('data:');
+    sourceMap = { url: inline ? `inline data: URL (${m.sourceMappingUrl.length} chars)` : m.sourceMappingUrl.slice(0, 2048) };
+    if (inline) {
       const comma = m.sourceMappingUrl.indexOf(',');
-      const b64 = /;base64$/i.test(m.sourceMappingUrl.slice(0, comma));
+      const b64 = /;base64$/i.test(m.sourceMappingUrl.slice(0, Math.max(0, comma)));
       const raw = m.sourceMappingUrl.slice(comma + 1);
-      const json = b64 ? Buffer.from(raw, 'base64').toString('utf8') : decodeURIComponent(raw);
-      const r = analyzeSourceMapText(json, ctx, text, `${lp}#inline-sourcemap`);
-      findings.push(...r.findings);
-      limitations.push(...r.limitations);
+      let json: string | null = null;
+      try {
+        json = b64 ? Buffer.from(raw, 'base64').toString('utf8') : decodeURIComponent(raw);
+      } catch {
+        limitations.push('Inline source map URL could not be decoded (malformed percent-encoding); not analyzed.');
+        unknowns.push(`${lp}: inline source map content.`);
+      }
+      if (json !== null) {
+        const r = analyzeSourceMapText(json, ctx, text, `${lp}#inline-sourcemap`);
+        findings.push(...r.findings);
+        limitations.push(...r.limitations);
+      }
     }
   }
 
@@ -313,7 +324,10 @@ export function decodeMappings(mappings: string): DecodedMappings {
     const c = mappings[i]!;
     if (c === ',' || c === ';') {
       endSegment();
-      if (c === ';') { out.generatedLines++; out.lineMaxColumn.push(-1); genCol = 0; }
+      if (c === ';') {
+        if (out.generatedLines >= MAX_SEGMENTS) { out.truncated = true; break; }
+        out.generatedLines++; out.lineMaxColumn.push(-1); genCol = 0;
+      }
       if (out.segments >= MAX_SEGMENTS) { out.truncated = true; break; }
       continue;
     }
@@ -327,6 +341,7 @@ export function decodeMappings(mappings: string): DecodedMappings {
       const neg = value % 2 === 1;
       const v = Math.floor(value / 2);
       fields.push(neg ? -v : v);
+      if (fields.length > 5) { out.valid = false; out.error = `segment with more than 5 fields at ${i}`; break; }
       value = 0; shift = 0; inValue = false;
     }
   }

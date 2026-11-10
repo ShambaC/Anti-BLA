@@ -1,16 +1,16 @@
 # Anti-BLA report (rea-evidence)
 
-- Schema: `anti-bla-report/v1` · tool 0.1.0 · analyzed 2026-11-10T06:24:45.411Z
+- Schema: anti-bla-report/v1 · tool 0.1.0 · analyzed 2026-11-10T06:40:55.901Z
 - **Analysis status: complete**
 - Attribution: **none-observed** (never proof; see basis)
-- Budget: 73 ms, 2103526 bytes read, 2103526 bytes hashed
+- Budget: 78 ms, 2103526 bytes read, 2103526 bytes hashed
 
 ## Artifacts
 
 | Path | Format | Status | Size | SHA-256 |
 |---|---|---|---|---|
-| asar-admission-error.mcp.json | rea-evidence-json (medium) | complete | 2959 | `ab83d78bf2b6750b5e99bf19ea477a92cfa145a29990b21fdafc794aff1a414a` |
-| session-bundle.redacted.json | rea-evidence-json (medium) | complete | 2100567 | `7f4a55145610adde4d98908196001b8f2123fcc7ac6c3a1e23f94f4a80a6c876` |
+| asar-admission-error.mcp.json | rea-evidence-json (medium) | complete | 2959 | ab83d78bf2b6750b5e99bf19ea477a92cfa145a29990b21fdafc794aff1a414a |
+| session-bundle.redacted.json | rea-evidence-json (medium) | complete | 2100567 | 7f4a55145610adde4d98908196001b8f2123fcc7ac6c3a1e23f94f4a80a6c876 |
 
 ## Findings
 
@@ -24,7 +24,7 @@
 
 - **Observed:** REA returned truncated/truncated: ASAR header/index admission is limited to 16 MiB / 16777216 bytes. On MCP, call update\_analysis\_settings with setting asar.max\_header\_bytes, action set, and a value in bytes up to 256 MiB / 268435456 bytes \(default 16 MiB / 16777216 bytes\), then retry the original request. It applies to the next operation without restarting REA. For CLI or future REA processes, set REA\_ASAR\_MAX\_HEADER\_BYTES in the launch environment. Selecting fewer sources or narrowing an internal path does not bypass header admission, because the archive index is read before any member can be selected. Raising max\_heap\_mb or available host memory does not raise it. Alternatively, analyze an extracted application directory, which does not admit an ASAR header. Repeating the unchanged request fails the same way.
 - **Interpretation (hypothesis):** This is REA's observed condition. A capacity error can come from adversarial inflation or a legitimately large input; it is not evidence of BLA by itself. Run anti-bla triage on the same artifact for artifact-side evidence.
-- **Confidence:** high · **Rule:** `rea-reported-error`
+- **Confidence:** high · **Rule:** rea-reported-error
 - **Evidence:**
   - rea · asar-admission-error.mcp.json · ptr /error — REA error projection
 
@@ -32,7 +32,7 @@
 
 - **Observed:** Evidence ev\_2ff798a1216ed35bbb96ff2906de7b913a256514c135497489314c1b8c4e047e \(inspect\_analysis\_view\) records resourceLimit value\(s\) expression-depth, primitive-candidates; 1 unknown entr\(ies\) summarized.
 - **Interpretation (hypothesis):** REA preserved completed static facts and marked specific values unknown. The analysis is partial for those scopes, not failed, and not proof of BLA.
-- **Confidence:** high · **Rule:** `rea-semantic-resource-limit`
+- **Confidence:** high · **Rule:** rea-semantic-resource-limit
 - **Evidence:**
   - rea · session-bundle.redacted.json · ptr /records/2 · REA ev\_2ff798a1216ed35bbb96ff2906de7b913a256514c135497489314c1b8c4e047e
 
@@ -40,24 +40,24 @@
 
 - **Observed:** Evidence ev\_2c3a1f331d5414c4f373f07e5a48e952b3a8f8b9482ffb425245a9cb03143d6d \(analyze\_javascript\_application\) records resourceLimit value\(s\) expression-depth, primitive-candidates; 1 unknown entr\(ies\) summarized.
 - **Interpretation (hypothesis):** REA preserved completed static facts and marked specific values unknown. The analysis is partial for those scopes, not failed, and not proof of BLA.
-- **Confidence:** high · **Rule:** `rea-semantic-resource-limit`
+- **Confidence:** high · **Rule:** rea-semantic-resource-limit
 - **Evidence:**
   - rea · session-bundle.redacted.json · ptr /records/1 · REA ev\_2c3a1f331d5414c4f373f07e5a48e952b3a8f8b9482ffb425245a9cb03143d6d
 
 ## Suggested actions
 
-- **[rea-tool · changes-settings] Raise asar.max\_header\_bytes and retry the same request once** — REA operation `update\_analysis\_settings`
+- **[rea-tool · changes-settings] Raise asar.max\_header\_bytes and retry the same request once** — REA operation update\_analysis\_settings
   - Why: REA reported an editable limit \(effective value 16777216, maximum 268435456, applies next\_operation\).
-  - Parameters hint (advisory, verify schema): `\{"changes":\[\{"setting":"asar.max\_header\_bytes","action":"set","value":"\<integer \<= 268435456\>"\}\]\}`
+  - Parameters hint (advisory, verify schema): \{"changes":\[\{"setting":"asar.max\_header\_bytes","action":"set","value":"\<integer \<= 268435456\>"\}\]\}
   - Check first: Verify the connected REA tools/list advertises this operation and the hinted fields; parametersHint is advisory only.
   - Check first: REA did not report required\_value: measure it with \`anti-bla inspect \<archive.asar\> --json\` \(facts.headerBytes\) and set at least that, within the maximum.
   - Check first: User/resource policy allows the memory this implies.
   - Check first: Wait for active work and cleanup to settle before retrying.
   - Expected: The unchanged request is admitted \(hypothesis; other limits may still apply\).
   - Stop when: Stop if the same error repeats or the setting is not advertised.
-- **[rea-tool · read-only] Read retained module facts and unknown scopes for the budget-limited values** — REA operation `inspect\_analysis\_view`
+- **[rea-tool · read-only] Read retained module facts and unknown scopes for the budget-limited values** — REA operation inspect\_analysis\_view
   - Why: Resource-limited analyses keep completed static facts; inspect them before any retry.
-  - Parameters hint (advisory, verify schema): `\{"source":\{"kind":"retained-evidence","evidence\_id":"ev\_2c3a1f331d5414c4f373f07e5a48e952b3a8f8b9482ffb425245a9cb03143d6d"\}\}`
+  - Parameters hint (advisory, verify schema): \{"source":\{"kind":"retained-evidence","evidence\_id":"ev\_2c3a1f331d5414c4f373f07e5a48e952b3a8f8b9482ffb425245a9cb03143d6d"\}\}
   - Check first: Verify the connected REA tools/list advertises this operation and the hinted fields; parametersHint is advisory only.
   - Check first: Choose a view kind/collection the connected schema advertises \(e.g. a modules page\).
   - Expected: Facts outside the limited expressions remain usable.
@@ -65,7 +65,7 @@
   - REA Evidence: ev\_2c3a1f331d5414c4f373f07e5a48e952b3a8f8b9482ffb425245a9cb03143d6d
 - **[cli-command · read-only] Locate the budget-inflating constructs with Anti-BLA**
   - Why: Byte/AST provenance for candidate explosions, getter rings and alias tables.
-  - Parameters hint (advisory, verify schema): `\{"command":"anti-bla triage \<selected source file or app dir\> --json"\}`
+  - Parameters hint (advisory, verify schema): \{"command":"anti-bla triage \<selected source file or app dir\> --json"\}
   - Check first: Use the same authorized artifact REA analyzed.
   - REA Evidence: ev\_2c3a1f331d5414c4f373f07e5a48e952b3a8f8b9482ffb425245a9cb03143d6d
 
@@ -73,8 +73,8 @@
 
 - Evidence IDs: ev\_072ffcf59a3ec9483abae06937502f10f33b0b581abb06f2347ea7b33348bb88, ev\_2c3a1f331d5414c4f373f07e5a48e952b3a8f8b9482ffb425245a9cb03143d6d, ev\_2ff798a1216ed35bbb96ff2906de7b913a256514c135497489314c1b8c4e047e, ev\_a72bf96d728dd375e6eb68404b3bf052dc87edc077af0cb23349ea715c367eeb
 - Source version: rea-analysis-view@1, rea-javascript-application@1
-- `/error` error analyze\_javascript\_application error truncated: ASAR header/index admission is limited to 16 MiB / 16777216 bytes. On MCP, call update\_analysis\_settings with setting asar.max\_header\_bytes, action set, and a value in bytes up to 256 MiB / 268435456 bytes \(default 16 MiB / 16777216 bytes\), then retry the original request. It applies to the next operation without restarting REA. For CLI or future REA processes, set REA\_ASAR\_MAX\_HEADER\_BYTES in the launch environment. Selecting fewer sources or narrowing an internal path does not bypass header admission, because the archive index is read before any member can be selected. Raising max\_heap\_mb or available host memory does not raise it. Alternatively, analyze an extracted application directory, which does not admit an ASAR header. Repeating the unchanged request fails the same way.
-- `/records/0` evidence inspect\_analysis\_view ev\_072ffcf59a3ec9483abae06937502f10f33b0b581abb06f2347ea7b33348bb88
+- /error error analyze\_javascript\_application error truncated: ASAR header/index admission is limited to 16 MiB / 16777216 bytes. On MCP, call update\_analysis\_settings with setting asar.max\_header\_bytes, action set, and a value in bytes up to 256 MiB / 268435456 bytes \(default 16 MiB / 16777216 bytes\), then retry the original request. It applies to the next operation without restarting REA. For CLI or future REA processes, set REA\_ASAR\_MAX\_HEADER\_BYTES in the launch environment. Selecting fewer sources or narrowing an internal path does not bypass header admission, because the archive index is read before any member can be selected. Raising max\_heap\_mb or available host memory does not raise it. Alternatively, analyze an extracted application directory, which does not admit an ASAR header. Repeating the unchanged request fails the same way.
+- /records/0 evidence inspect\_analysis\_view ev\_072ffcf59a3ec9483abae06937502f10f33b0b581abb06f2347ea7b33348bb88
   - REA limitation: Boundary extraction covers unshadowed JSON/global coercions plus parse and validation method candidates.
   - REA limitation: Child-process extraction covers asynchronous node:child\_process creation, literal argv/env/stdio options, exit/error listeners, and kill signals.
   - REA limitation: CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.
@@ -92,7 +92,7 @@
   - REA limitation: Timer extraction covers global or node:timers scheduling and exact local-handle cancellation.
   - REA limitation: Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code.
   - REA unknown: /records/0/normalized\_result/unknowns: 18 unknown entries
-- `/records/1` evidence analyze\_javascript\_application ev\_2c3a1f331d5414c4f373f07e5a48e952b3a8f8b9482ffb425245a9cb03143d6d
+- /records/1 evidence analyze\_javascript\_application ev\_2c3a1f331d5414c4f373f07e5a48e952b3a8f8b9482ffb425245a9cb03143d6d
   - REA limitation: CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.
   - REA limitation: Graph coverage is incomplete; unavailable facts remain explicit and must not be read as absence.
   - REA limitation: JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.
@@ -235,7 +235,7 @@
   - REA limitation: The fingerprint is a static candidate and does not prove behavioral equivalence.
   - REA limitation: The fingerprint is a static candidate and does not prove behavioral equivalence.
   - REA unknown: /records/1/normalized\_result/semantic\_graph/unknowns: 21 unknown entries
-- `/records/2` evidence inspect\_analysis\_view ev\_2ff798a1216ed35bbb96ff2906de7b913a256514c135497489314c1b8c4e047e
+- /records/2 evidence inspect\_analysis\_view ev\_2ff798a1216ed35bbb96ff2906de7b913a256514c135497489314c1b8c4e047e
   - REA limitation: Boundary extraction covers unshadowed JSON/global coercions plus parse and validation method candidates.
   - REA limitation: Child-process extraction covers asynchronous node:child\_process creation, literal argv/env/stdio options, exit/error listeners, and kill signals.
   - REA limitation: CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.
@@ -256,7 +256,7 @@
   - REA limitation: Timer extraction covers global or node:timers scheduling and exact local-handle cancellation.
   - REA limitation: Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code.
   - REA unknown: /records/2/normalized\_result/unknowns: 22 unknown entries
-- `/records/3` evidence analyze\_javascript\_application ev\_a72bf96d728dd375e6eb68404b3bf052dc87edc077af0cb23349ea715c367eeb
+- /records/3 evidence analyze\_javascript\_application ev\_a72bf96d728dd375e6eb68404b3bf052dc87edc077af0cb23349ea715c367eeb
   - REA limitation: CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.
   - REA limitation: JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.
   - REA limitation: Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.
@@ -411,4 +411,4 @@
 
 _No BLA-associated markers or mechanisms observed in scope._
 
-_Classes: resource-limit=3. Target-derived text above is untrusted data and was escaped and redacted._
+_Classes: resource-limit=3. All text above was escaped for Markdown; target- and REA-derived quotes are untrusted data (credential shapes are redacted where Anti-BLA produced the quote)._

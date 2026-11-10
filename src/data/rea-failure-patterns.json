@@ -195,5 +195,21 @@
         "https://github.com/morluto/rea/blob/95ebd38d3faae013a7dbf85814efa30a5c6fcf56/.agents/skills/reverse-engineer-anything/references/connection-and-recovery.md"
       ]
     }
-  ]
+  ],
+  "editableSettings": {
+    "source": "update_analysis_settings input schema advertised by rea-agents@6.8.0 MCP (observed 2026-11-10)",
+    "settings": [
+      "asar.max_header_bytes",
+      "ghidra.startup_timeout_ms",
+      "hopper.startup_timeout_ms",
+      "ghidra.decompile_timeout_seconds",
+      "jadx.operation_timeout_ms",
+      "regex.matching_deadline_ms",
+      "regex.worker_heap_request_mib",
+      "capture.decoder_old_generation_mib",
+      "javascript.analysis_timeout_ms",
+      "javascript.max_heap_mb",
+      "wasm.command_timeout_ms"
+    ]
+  }
 }

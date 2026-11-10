@@ -1,5 +1,5 @@
-import { rename, rm, stat, writeFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { basename, dirname, join, resolve } from 'node:path';
 import { aggregateStatus, attribution } from '../core/classification.js';
 import { capFindings } from '../core/findings.js';
 import { isInside } from '../core/files.js';
@@ -61,11 +61,21 @@ export function assemble(command: AntiBlaReport['command'], c: Collected, budget
 /** Atomic write to an explicit destination; refuses overwrite without --force and refuses paths inside analyzed inputs. */
 export async function writeOutput(outPath: string, content: string, force: boolean, protectedPaths: string[]): Promise<void> {
   const out = resolve(outPath);
+  // Compare real paths (symlinks/junctions/8.3 names resolved) and, on Windows/macOS, case-insensitively.
+  let realOut = out;
+  try { realOut = join(await realpath(dirname(out)), basename(out)); } catch { /* parent missing: writeFile will fail */ }
+  const fold = (p: string) => (process.platform === 'win32' || process.platform === 'darwin' ? p.toLowerCase() : p);
+  let outStat: Awaited<ReturnType<typeof stat>> | null = null;
+  try { outStat = await stat(out, { bigint: true }); } catch { /* absent */ }
   for (const p of protectedPaths) {
-    const abs = resolve(p);
-    let isDir = false;
-    try { isDir = (await stat(abs)).isDirectory(); } catch { /* gone */ }
-    if (out === abs || (isDir && isInside(abs, out))) throw new UsageError(`Refusing to write output inside or onto an analyzed input: ${out}`, 'unsafe_output');
+    let abs = resolve(p);
+    try { abs = await realpath(abs); } catch { /* gone */ }
+    let st: Awaited<ReturnType<typeof stat>> | null = null;
+    try { st = await stat(abs, { bigint: true }); } catch { /* gone */ }
+    const sameFile = !!(st && outStat && st.ino !== 0n && st.ino === outStat.ino && st.dev === outStat.dev);
+    if (sameFile || fold(realOut) === fold(abs) || (st?.isDirectory() && isInside(fold(abs), fold(realOut)))) {
+      throw new UsageError(`Refusing to write output inside or onto an analyzed input: ${out}`, 'unsafe_output');
+    }
   }
   let exists = false;
   try { await stat(out); exists = true; } catch { /* absent */ }

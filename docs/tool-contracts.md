@@ -9,7 +9,7 @@ Source of truth: `src/core/types.ts`. Schema id: `anti-bla-report/v1`. All text 
 - `analysisStatus`: overall status, see below.
 - `analyzedAt`: ISO-8601 timestamp (with `budgets.elapsedMs`, the only run-dependent fields).
 - `toolVersion`: Anti-BLA version string.
-- `artifacts[]`: `{ path, logicalPath, sha256, sizeBytes, detectedFormat, formatConfidence, analysisStatus }`. `path` is absolute (or `<redacted>/<logicalPath>` with `--redact-paths`). `sha256` covers the whole file even when reads were truncated. `formatConfidence` is `low|medium|high`. For an ASAR member analyzed with `--member`, `path` is `<archive>#<member>`.
+- `artifacts[]`: `{ path, logicalPath, sha256, sizeBytes, detectedFormat, formatConfidence, analysisStatus }`. `path` is absolute (or `<redacted>/<logicalPath>` with `--redact-paths`). `sha256` covers the whole file even when reads were truncated. `formatConfidence` is `low|medium|high`. For an ASAR member analyzed with `--member`, `path` is `<archive>#<member>`. Optional `facts` holds analyzer-specific measurements (for example ASAR `headerBytes`/`jsonBytes`/`inventorySample`, WASM `exports`/`imports`/`sections`, SQLite `tables`/`analyzerSqliteVersion`, JS node counts). Names inside `facts` come from the target and are previewed (bounded, redacted).
 - `findings[]`: see below.
 - `suggestedActions[]`: see below.
 - `coverage`: `examined` (logical paths analyzed) and `excluded[]` (`{ path, reason }`: unreadable, symlink outside root, alias, depth/file cap, time budget).
@@ -48,7 +48,7 @@ The report-level `analysisStatus` (`aggregateStatus` in `src/core/classification
 
 `attribution.status` is `none-observed`, `bla-like-mechanisms` or `bla-markers-observed`. There is no `confirmed`: markers can be planted and mechanisms occur in legitimate software.
 - `bla-markers-observed`: a `bla-marker-string` finding exists.
-- `bla-like-mechanisms`: otherwise, at least one non-low-confidence finding from the mechanism rules: `js-literal-alternative-explosion`, `js-primitive-byte-charge`, `js-expression-depth`, `js-getter-ring`, `js-alias-table`, `asar-header-exceeds-rea-default`, `wasm-interface-representation`, `wasm-export-inflation`, `sqlite-generated-column-unknown-function`, `sourcemap-unreferenced-content`, `sourcemap-bundle-mismatch`, `electron-fuse-sentinel-flood`, `agent-directed-instruction`.
+- `bla-like-mechanisms`: otherwise, either one non-low-confidence **structural** finding (`js-literal-alternative-explosion`, `js-primitive-byte-charge`, `js-getter-ring`, `js-alias-table`, `wasm-export-inflation`, `sqlite-generated-column-unknown-function`, `sourcemap-unreferenced-content`, `electron-fuse-sentinel-flood`, `agent-directed-instruction`), or at least two non-low-confidence **capacity** findings (`asar-header-exceeds-rea-default`, `wasm-interface-representation`, `js-expression-depth`, `sourcemap-bundle-mismatch`). A single large-but-legitimate input does not trigger it.
 - `basis[]` lists `"<findingId> <rule>"` entries.
 
 ### SuggestedAction

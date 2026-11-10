@@ -8,7 +8,7 @@ import { JsWorkerHost } from '../formats/javascript.js';
 import { assemble, emptyCollected, UsageError, type Collected } from './assemble.js';
 
 export function addResult(c: Collected, r: PipelineResult): void {
-  c.artifacts.push(r.identity);
+  c.artifacts.push(Object.keys(r.result.facts).length ? { ...r.identity, facts: r.result.facts } : r.identity);
   c.statuses.push(r.result.status);
   c.examined.push(r.identity.logicalPath);
   c.findings.push(...r.result.findings);
@@ -32,9 +32,13 @@ export async function runTriage(target: string, budget: Budget, opts: { redactPa
         budget.markTruncated('time budget exhausted');
         continue;
       }
-      const r = await analyzePath(f.path, f.logicalPath, budget, host, { sibling: (lp) => byLogical.get(lp) });
-      if ('excluded' in r) c.excluded.push({ path: f.logicalPath, reason: r.excluded });
-      else addResult(c, r);
+      try {
+        const r = await analyzePath(f.path, f.logicalPath, budget, host, { sibling: (lp) => byLogical.get(lp) });
+        if ('excluded' in r) c.excluded.push({ path: f.logicalPath, reason: r.excluded });
+        else addResult(c, r);
+      } catch (e) {
+        c.excluded.push({ path: f.logicalPath, reason: `analysis aborted: ${(e as Error).message.slice(0, 120)}` });
+      }
     }
   } finally {
     await host.close();

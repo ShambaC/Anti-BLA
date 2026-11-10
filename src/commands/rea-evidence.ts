@@ -7,7 +7,7 @@ import { findDuplicateKeys } from '../core/json-dupes.js';
 import { TextIndex } from '../core/provenance.js';
 import type { AntiBlaReport, ReaRecordSummary } from '../core/types.js';
 import { scanSegments } from '../formats/generic.js';
-import { locateRecords } from '../rea/parse-evidence.js';
+import { locateRecords, WALK_CAP } from '../rea/parse-evidence.js';
 import { recommend } from '../rea/recommend-next-step.js';
 import type { Json } from '../rea/evidence-schema.js';
 import { assemble, emptyCollected, UsageError } from './assemble.js';
@@ -35,7 +35,8 @@ export async function runReaEvidence(inputs: string[], budget: Budget, opts: { r
       c.limitations.push(`${lp}: larger than --max-file-bytes/--max-total-bytes; not parsed.`);
       continue;
     }
-    const text = bytes.toString('utf8');
+    // Windows PowerShell 5.1 redirection writes a UTF-8 BOM; it is not part of the JSON.
+    const text = bytes.toString('utf8').replace(/^\uFEFF/, '');
     let root: Json;
     try {
       root = JSON.parse(text) as Json;
@@ -72,7 +73,9 @@ export async function runReaEvidence(inputs: string[], budget: Budget, opts: { r
   const rec = recommend(records);
   c.findings.push(...rec.findings);
   c.actions.push(...rec.actions);
-  if (records.some((r) => r.shape === 'evidence' && !r.resourceLimits.length) && !rec.actions.length) c.limitations.push('Successful REA Evidence with no recognized limits: no recovery action is needed.');
+  const walkCapped = records.some((r) => r.limitations.includes(WALK_CAP));
+  if (walkCapped) c.limitations.push('Some REA records were only partly summarized (walk cap); absence of recognized limits is not established.');
+  else if (records.some((r) => r.shape === 'evidence' && !r.resourceLimits.length) && !rec.actions.length) c.limitations.push('Successful REA Evidence with no recognized limits: no recovery action is needed.');
   const ids = [...new Set(records.flatMap((r) => [r.evidenceId, r.parentEvidenceId].filter((x): x is string => !!x)))].sort();
   const rea: AntiBlaReport['rea'] = { evidenceIds: ids, records };
   if (versions.size) rea.sourceVersion = [...versions].sort().join(', ');

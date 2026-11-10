@@ -2,7 +2,7 @@
   "schemaVersion": "anti-bla-report/v1",
   "command": "triage",
   "analysisStatus": "partial",
-  "analyzedAt": "2026-11-10T06:24:45.191Z",
+  "analyzedAt": "2026-11-10T06:40:55.658Z",
   "toolVersion": "0.1.0",
   "artifacts": [
     {
@@ -12,7 +12,19 @@
       "sizeBytes": 9826,
       "detectedFormat": "javascript",
       "formatConfidence": "medium",
-      "analysisStatus": "complete"
+      "analysisStatus": "complete",
+      "facts": {
+        "nodes": 1589,
+        "maxAstDepth": 9,
+        "maxExpressionDepth": 5,
+        "maxTernaryAlternatives": 0,
+        "literalTernaryChains": 0,
+        "getters": 0,
+        "functions": 1,
+        "imports": [],
+        "exports": 1,
+        "sourceMap": null
+      }
     },
     {
       "path": "<redacted>/constant-guard.js",
@@ -21,7 +33,19 @@
       "sizeBytes": 150,
       "detectedFormat": "javascript",
       "formatConfidence": "medium",
-      "analysisStatus": "complete"
+      "analysisStatus": "complete",
+      "facts": {
+        "nodes": 43,
+        "maxAstDepth": 8,
+        "maxExpressionDepth": 4,
+        "maxTernaryAlternatives": 0,
+        "literalTernaryChains": 0,
+        "getters": 0,
+        "functions": 2,
+        "imports": [],
+        "exports": 1,
+        "sourceMap": null
+      }
     },
     {
       "path": "<redacted>/decoy-custom.wasm",
@@ -30,7 +54,861 @@
       "sizeBytes": 5834,
       "detectedFormat": "wasm",
       "formatConfidence": "high",
-      "analysisStatus": "complete"
+      "analysisStatus": "complete",
+      "facts": {
+        "version": 1,
+        "engineValid": true,
+        "sections": [
+          {
+            "id": 1,
+            "name": "type",
+            "start": 8,
+            "end": 17
+          },
+          {
+            "id": 3,
+            "name": "function",
+            "start": 17,
+            "end": 21
+          },
+          {
+            "id": 7,
+            "name": "export",
+            "start": 21,
+            "end": 5622
+          },
+          {
+            "id": 10,
+            "name": "code",
+            "start": 5622,
+            "end": 5633
+          },
+          {
+            "id": 0,
+            "name": "custom",
+            "start": 5633,
+            "end": 5733,
+            "customName": "bla.canary.credentials"
+          },
+          {
+            "id": 0,
+            "name": "custom",
+            "start": 5733,
+            "end": 5834,
+            "customName": "vendor.diagnostics"
+          }
+        ],
+        "types": 1,
+        "functions": 1,
+        "bodies": 1,
+        "importCount": 0,
+        "exportCount": 301,
+        "imports": [],
+        "exports": [
+          {
+            "name": "add",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_0",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_1",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_2",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_3",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_4",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_5",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_6",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_7",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_8",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_9",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_10",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_11",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_12",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_13",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_14",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_15",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_16",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_17",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_18",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_19",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_20",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_21",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_22",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_23",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_24",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_25",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_26",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_27",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_28",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_29",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_30",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_31",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_32",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_33",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_34",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_35",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_36",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_37",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_38",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_39",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_40",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_41",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_42",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_43",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_44",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_45",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_46",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_47",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_48",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_49",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_50",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_51",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_52",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_53",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_54",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_55",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_56",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_57",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_58",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_59",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_60",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_61",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_62",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_63",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_64",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_65",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_66",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_67",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_68",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_69",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_70",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_71",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_72",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_73",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_74",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_75",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_76",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_77",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_78",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_79",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_80",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_81",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_82",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_83",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_84",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_85",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_86",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_87",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_88",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_89",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_90",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_91",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_92",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_93",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_94",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_95",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_96",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_97",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_98",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_99",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_100",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_101",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_102",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_103",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_104",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_105",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_106",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_107",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_108",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_109",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_110",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_111",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_112",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_113",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_114",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_115",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_116",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_117",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_118",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_119",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_120",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_121",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_122",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_123",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_124",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_125",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_126",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_127",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_128",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_129",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_130",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_131",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_132",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_133",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_134",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_135",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_136",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_137",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_138",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_139",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_140",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_141",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_142",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_143",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_144",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_145",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_146",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_147",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_148",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_149",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_150",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_151",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_152",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_153",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_154",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_155",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_156",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_157",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_158",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_159",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_160",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_161",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_162",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_163",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_164",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_165",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_166",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_167",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_168",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_169",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_170",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_171",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_172",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_173",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_174",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_175",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_176",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_177",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_178",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_179",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_180",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_181",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_182",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_183",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_184",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_185",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_186",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_187",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_188",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_189",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_190",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_191",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_192",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_193",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_194",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_195",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_196",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_197",
+            "kind": "func"
+          },
+          {
+            "name": "decoy_export_198",
+            "kind": "func"
+          }
+        ],
+        "listsTruncated": true,
+        "customBytes": 201
+      }
     },
     {
       "path": "<redacted>/fuse-flood.bin",
@@ -39,7 +917,10 @@
       "sizeBytes": 1504,
       "detectedFormat": "elf",
       "formatConfidence": "high",
-      "analysisStatus": "partial"
+      "analysisStatus": "partial",
+      "facts": {
+        "scannedBytes": 1504
+      }
     },
     {
       "path": "<redacted>/getter-ring.js",
@@ -48,7 +929,19 @@
       "sizeBytes": 356,
       "detectedFormat": "javascript",
       "formatConfidence": "medium",
-      "analysisStatus": "complete"
+      "analysisStatus": "complete",
+      "facts": {
+        "nodes": 53,
+        "maxAstDepth": 10,
+        "maxExpressionDepth": 2,
+        "maxTernaryAlternatives": 0,
+        "literalTernaryChains": 0,
+        "getters": 4,
+        "functions": 0,
+        "imports": [],
+        "exports": 2,
+        "sourceMap": null
+      }
     },
     {
       "path": "<redacted>/honey.js",
@@ -57,7 +950,21 @@
       "sizeBytes": 111,
       "detectedFormat": "javascript",
       "formatConfidence": "medium",
-      "analysisStatus": "complete"
+      "analysisStatus": "complete",
+      "facts": {
+        "nodes": 25,
+        "maxAstDepth": 6,
+        "maxExpressionDepth": 2,
+        "maxTernaryAlternatives": 0,
+        "literalTernaryChains": 0,
+        "getters": 0,
+        "functions": 1,
+        "imports": [],
+        "exports": 0,
+        "sourceMap": {
+          "url": "honey.js.map"
+        }
+      }
     },
     {
       "path": "<redacted>/honey.js.map",
@@ -66,7 +973,16 @@
       "sizeBytes": 423,
       "detectedFormat": "source-map",
       "formatConfidence": "medium",
-      "analysisStatus": "complete"
+      "analysisStatus": "complete",
+      "facts": {
+        "version": 3,
+        "sources": 2,
+        "sourcesContent": 2,
+        "segments": 3,
+        "generatedLines": 40,
+        "file": "honey.js",
+        "pairedBundle": "honey.js"
+      }
     },
     {
       "path": "<redacted>/prompt-injection.js",
@@ -75,7 +991,19 @@
       "sizeBytes": 375,
       "detectedFormat": "javascript",
       "formatConfidence": "medium",
-      "analysisStatus": "complete"
+      "analysisStatus": "complete",
+      "facts": {
+        "nodes": 27,
+        "maxAstDepth": 5,
+        "maxExpressionDepth": 1,
+        "maxTernaryAlternatives": 0,
+        "literalTernaryChains": 0,
+        "getters": 0,
+        "functions": 1,
+        "imports": [],
+        "exports": 3,
+        "sourceMap": null
+      }
     },
     {
       "path": "<redacted>/ternary-explosion.js",
@@ -84,7 +1012,19 @@
       "sizeBytes": 7766,
       "detectedFormat": "javascript",
       "formatConfidence": "medium",
-      "analysisStatus": "complete"
+      "analysisStatus": "complete",
+      "facts": {
+        "nodes": 2891,
+        "maxAstDepth": 307,
+        "maxExpressionDepth": 301,
+        "maxTernaryAlternatives": 300,
+        "literalTernaryChains": 10,
+        "getters": 0,
+        "functions": 1,
+        "imports": [],
+        "exports": 1,
+        "sourceMap": null
+      }
     },
     {
       "path": "<redacted>/trap.sqlite",
@@ -93,7 +1033,26 @@
       "sizeBytes": 12288,
       "detectedFormat": "sqlite",
       "formatConfidence": "high",
-      "analysisStatus": "complete"
+      "analysisStatus": "complete",
+      "facts": {
+        "pageSize": 4096,
+        "pageCount": 3,
+        "schemaFormat": 4,
+        "textEncoding": 1,
+        "journal": "rollback",
+        "sqliteVersionNumber": 3050004,
+        "analyzerSqliteVersion": "3.50.4",
+        "tables": 2,
+        "views": 0,
+        "indexes": 0,
+        "triggers": 0,
+        "generatedColumns": 1,
+        "tableNames": [
+          "license_cache",
+          "notes"
+        ],
+        "virtualTables": 0
+      }
     }
   ],
   "findings": [
@@ -939,7 +1898,9 @@
           "note": "schema SQL (stored text)"
         }
       ],
-      "limitations": [],
+      "limitations": [
+        "Function availability was checked against this host's SQLite 3.50.4; another build may differ."
+      ],
       "nextSteps": [
         "Select only stored columns, or use REA schema_scope: \"database\" for declarations.",
         "Report computed values as unknown; do not load extensions or emulate the function."
@@ -1080,8 +2041,8 @@
     ]
   },
   "budgets": {
-    "elapsedMs": 303,
-    "bytesRead": 38744,
+    "elapsedMs": 318,
+    "bytesRead": 40248,
     "bytesHashed": 38633,
     "truncated": false,
     "limits": {
