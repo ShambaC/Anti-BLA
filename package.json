@@ -1,67 +1,67 @@
 {
-  "name": "anti-bla",
-  "version": "0.1.0",
-  "description": "Read-only, bounded triage of adversarially hardened artifacts (BLA-style obstruction) to complement REA (Reverse Engineer Anything).",
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test --test-reporter=spec \"dist/tests/**/*.test.js\"",
-    "test:unit": "npm run build && node --test \"dist/tests/unit/**/*.test.js\"",
-    "test:integration": "npm run build && node --test \"dist/tests/integration/**/*.test.js\" \"dist/tests/regression/**/*.test.js\"",
-    "check:skill": "npm run build && node dist/scripts/check-skill.js",
-    "fixtures": "npm run build && node dist/scripts/generate-fixtures.js",
-    "bench": "npm run build && node dist/benchmarks/runner.js",
-    "bench:validate": "npm run build && node dist/benchmarks/validate-results.js",
-    "prepack": "npm run build",
-    "bench:bla": "npm run build && node dist/benchmarks/bla-showcase.js"
-  },
-  "keywords": [
-    "reverse-engineering",
-    "rea",
-    "bla",
-    "agent-skill",
-    "claude-code",
-    "codex",
-    "static-analysis",
-    "electron",
-    "wasm",
-    "sqlite"
-  ],
-  "author": "",
-  "license": "MIT",
-  "dependencies": {
-    "typescript": "^5.9.3"
-  },
-  "devDependencies": {
-    "@electron/asar": "^4.3.1",
-    "@types/node": "^22.20.5"
-  },
-  "type": "module",
-  "bin": {
-    "anti-bla": "./dist/src/cli.js"
-  },
-  "engines": {
-    "node": ">=22.13"
-  },
-  "files": [
-    "dist/src",
-    "skills",
-    "docs",
-    ".claude-plugin",
-    ".codex-plugin",
-    "README.md",
-    "LICENSE"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ShambaC/anti-bla.git"
-  },
-  "homepage": "https://github.com/ShambaC/anti-bla#readme",
-  "bugs": {
-    "url": "https://github.com/ShambaC/anti-bla/issues"
-  },
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  }
+    "name": "anti-bla",
+    "version": "0.1.1",
+    "description": "Read-only, bounded triage of adversarially hardened artifacts (BLA-style obstruction) to complement REA (Reverse Engineer Anything).",
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "typecheck": "tsc -p tsconfig.json --noEmit",
+        "test": "npm run build && node --test --test-reporter=spec \"dist/tests/**/*.test.js\"",
+        "test:unit": "npm run build && node --test \"dist/tests/unit/**/*.test.js\"",
+        "test:integration": "npm run build && node --test \"dist/tests/integration/**/*.test.js\" \"dist/tests/regression/**/*.test.js\"",
+        "check:skill": "npm run build && node dist/scripts/check-skill.js",
+        "fixtures": "npm run build && node dist/scripts/generate-fixtures.js",
+        "bench": "npm run build && node dist/benchmarks/runner.js",
+        "bench:validate": "npm run build && node dist/benchmarks/validate-results.js",
+        "prepack": "npm run build",
+        "bench:bla": "npm run build && node dist/benchmarks/bla-showcase.js"
+    },
+    "keywords": [
+        "reverse-engineering",
+        "rea",
+        "bla",
+        "agent-skill",
+        "claude-code",
+        "codex",
+        "static-analysis",
+        "electron",
+        "wasm",
+        "sqlite"
+    ],
+    "author": "",
+    "license": "MIT",
+    "dependencies": {
+        "typescript": "^5.9.3"
+    },
+    "devDependencies": {
+        "@electron/asar": "^4.3.1",
+        "@types/node": "^22.20.5"
+    },
+    "type": "module",
+    "bin": {
+        "anti-bla": "./dist/src/cli.js"
+    },
+    "engines": {
+        "node": ">=22.13"
+    },
+    "files": [
+        "dist/src",
+        "skills",
+        "docs",
+        ".claude-plugin",
+        ".codex-plugin",
+        "README.md",
+        "LICENSE"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/ShambaC/anti-bla.git"
+    },
+    "homepage": "https://github.com/ShambaC/anti-bla#readme",
+    "bugs": {
+        "url": "https://github.com/ShambaC/anti-bla/issues"
+    },
+    "publishConfig": {
+        "access": "public",
+        "provenance": true
+    }
 }
