@@ -95,6 +95,6 @@ all findings framed as structural observations.
 - [threat-model.md](references/threat-model.md) — BLA technique families and why signatures alone fail
 - [rea-integration.md](references/rea-integration.md) — schema checks, retained Evidence, CLI vs MCP
 - [budget-recovery.md](references/budget-recovery.md) — failure → supported action → stop condition
-- [format-playbooks.md](references/format-playbooks.md) — JS/TS, ASAR, WASM, SQLite quick procedures
+- [format-playbooks.md](references/format-playbooks.md) — JS/TS, source maps, ASAR, WASM, SQLite, native/other quick procedures
 - [evidence-validation.md](references/evidence-validation.md) — untrusted content, source maps, conflicts
 - [reporting.md](references/reporting.md) — finding ledger and mandatory report sections
