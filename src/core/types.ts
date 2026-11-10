@@ -13,7 +13,9 @@ export type FindingClass =
   | 'reachability-unknown'
   | 'integrity-dependency'
   | 'runtime-discrepancy'
-  | 'analysis-limitation';
+  | 'analysis-limitation'
+  /** A value proven statically (bounded sound folding); still says nothing about reachability. */
+  | 'recovered-value';
 
 export interface ArtifactIdentity {
   path: string;

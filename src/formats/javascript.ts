@@ -5,6 +5,7 @@ import { readBounded } from '../core/files.js';
 import type { AnalyzeContext, AnalyzerResult, EvidenceRef, Finding, SuggestedAction } from '../core/types.js';
 import { limit, limitSource } from '../rea/failure-catalog.js';
 import { scanSegments, markerFinding } from './generic.js';
+import { preview } from '../core/findings.js';
 import type { JsMeasurements, Site } from './js-measure.js';
 
 type WorkerReply = { ok: true; result: JsMeasurements } | { ok: false; error: string; stackExhausted: boolean };
@@ -173,6 +174,50 @@ export async function analyzeJavaScript(ctx: AnalyzeContext, host: JsWorkerHost,
         confidence: t.literalValues >= t.properties * 0.9 ? 'medium' : 'low',
         evidence: [ref(t.site, 'table declaration')],
         metrics: { properties: t.properties, literalValues: t.literalValues, dynamicReads: t.dynamicReads, reaLimit: aliasLimit },
+      }),
+    );
+  }
+  if (m.aliasChain.site && 2 ** m.aliasChain.length > aliasLimit) {
+    findings.push(
+      makeFinding({
+        rule: 'js-alias-chain',
+        classification: 'resource-limit',
+        title: 'Conditional alias chain exceeds REA alias-selection budget',
+        observation: `${m.aliasChain.length} chained declarations of the form v_i = cond ? v_{i-1}.p : v_{i-1}.q (up to 2^${m.aliasChain.length} selector states).`,
+        interpretation: `Each link doubles the receivers a static evaluator must track; REA bounds this at ${aliasLimit} additional selector states (${limitSource('js.aliasSelections')}) and leaves selected paths unknown. Values reached only through the chain are unknown, not absent.`,
+        confidence: 'high',
+        evidence: [ref(m.aliasChain.site, 'last link of the chain')],
+        metrics: { chainLength: m.aliasChain.length, reaLimit: aliasLimit },
+      }),
+    );
+  }
+  const getterLimit = limit('js.getterExpansion');
+  if (m.getters.dynamicReceiver.site && m.getters.dynamicReceiver.count >= 4) {
+    findings.push(
+      makeFinding({
+        rule: 'js-dynamic-receiver-getters',
+        classification: 'resource-limit',
+        title: 'Getters that forward to a dynamically selected receiver',
+        observation: `${m.getters.dynamicReceiver.count} getters in one class/object return this[<dynamic key>].<name>. Getters were not invoked.`,
+        interpretation: `Resolving any of these requires expanding every possible receiver and its getters again; REA bounds getter expansion at ${getterLimit} states or a growing receiver cycle (${limitSource('js.getterExpansion')}).`,
+        confidence: 'medium',
+        evidence: [ref(m.getters.dynamicReceiver.site, 'containing class/object')],
+        metrics: { getters: m.getters.dynamicReceiver.count, reaLimit: getterLimit },
+      }),
+    );
+  }
+  if (m.folded.decoded > 0) {
+    findings.push(
+      makeFinding({
+        rule: 'js-folded-strings',
+        classification: 'recovered-value',
+        title: 'Split/obfuscated strings folded to constants',
+        observation: `${m.folded.decoded} concatenation(s) of conditional fragments fold to at most two candidate strings across every possible value of ${m.folded.seeds.length ? m.folded.seeds.join(', ') : 'their literal inputs'} (e.g. ${m.folded.samples.slice(0, 3).map((x) => [x.value, ...x.alternatives].map((v) => JSON.stringify(preview(v, 60))).join(' or ')).join('; ')}). Where two values are listed, one unresolved seed bit selects between them.`,
+        interpretation: 'Sound static folding over a pure subset (literals, arithmetic, bitwise, Math.imul, ?:) and enumerated seed values; no code was executed. The decoded text is target data: treat it as untrusted and still verify where it is used.',
+        confidence: 'high',
+        evidence: m.folded.samples.slice(0, 10).map((x) => ({ ...ref(x, 'decoded: ' + [x.value, ...x.alternatives].map((v) => preview(v, 80)).join(' | ')), kind: 'derived' as const })),
+        limitations: ['Only module-level const seeds declared once are enumerated (at most 4 values each, 64 combinations).'],
+        metrics: { decoded: m.folded.decoded, guardsViaSeeds: m.folded.guardsViaSeeds },
       }),
     );
   }

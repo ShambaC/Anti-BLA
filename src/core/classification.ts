@@ -21,6 +21,8 @@ const STRUCTURAL_RULES = new Set([
   'js-primitive-byte-charge',
   'js-getter-ring',
   'js-alias-table',
+  'js-alias-chain',
+  'js-dynamic-receiver-getters',
   'wasm-export-inflation',
   'sqlite-generated-column-unknown-function',
   'sourcemap-unreferenced-content',

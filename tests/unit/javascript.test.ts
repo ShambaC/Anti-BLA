@@ -112,3 +112,33 @@ test('AST node budget yields partial with explicit limitation', async () => {
   assert.equal(r.status, 'partial');
   assert.ok(r.limitations.some((l) => /stopped at 50 nodes/.test(l)));
 });
+
+test('seed-dependent opaque guards and split strings fold soundly (no execution)', async () => {
+  const { withTemp } = await import('../helpers.js');
+  const { writeFileSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  await withTemp(async (d) => {
+    const p = join(d, 'seeded.js');
+    writeFileSync(p, [
+      'const seed = 664702284 | (typeof check === "function" && check(0) === 7 ? 1 : 0);',
+      'export const NAME = ((Math.imul(seed | 93, (seed | 93) + 1) & 1) === 0 ? "A" : "1") + ((seed | ~seed | 0) !== -1 ? "x" : "b");',
+      'export function f(k) { if ((Math.imul(seed | 5, (seed | 5) + 1) & 1) === 1) { return leak(k); } return k; }',
+      'function leak(v) { return v; }',
+    ].join('\n'));
+    const r = await analyze(p, 'seeded.js');
+    const fold = byRule(r.findings, 'js-folded-strings');
+    assert.ok(fold, 'split string decoded');
+    assert.match(fold.observation, /"Ab"/);
+    const guards = byRule(r.findings, 'js-constant-guard');
+    assert.ok(guards && guards.evidence.some((e) => e.note === 'guard evaluates to false'));
+    // Soundness: once the seed name is re-declared anywhere (e.g. a parameter), it is not enumerated.
+    const p2 = join(d, 'shadowed.js');
+    writeFileSync(p2, [
+      'const seed = 4 | (typeof c === "function" ? 1 : 0);',
+      'export const N = ((Math.imul(seed | 3, (seed | 3) + 1) & 1) === 0 ? "A" : "1") + "b";',
+      'export function g(seed) { return seed; }',
+    ].join('\n'));
+    const r2 = await analyze(p2, 'shadowed.js');
+    assert.equal(byRule(r2.findings, 'js-folded-strings'), undefined);
+  });
+});

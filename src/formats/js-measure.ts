@@ -1,6 +1,7 @@
 // Structural measurements over a TypeScript-compiler AST. Pure: no eval, no require of target code,
 // no getter invocation. All traversals are iterative so hostile nesting cannot blow our stack.
 import type tsType from 'typescript';
+import { Folder } from './js-fold.js';
 
 export interface JsJob {
   text: string;
@@ -22,7 +23,8 @@ export interface JsMeasurements {
   maxExpressionDepthSite: Site | null;
   ternary: { maxAlternatives: number; site: Site | null; chainsOver16: number; literalChains: number; maxLiteralAlternatives: number; literalSite: Site | null };
   concat: { maxCandidates: number; site: Site | null; maxByteCharge: number; byteSite: Site | null };
-  getters: { total: number; rings: { names: string[]; site: Site }[] };
+  getters: { total: number; rings: { names: string[]; site: Site }[]; dynamicReceiver: { count: number; site: Site | null } };
+  aliasChain: { length: number; site: Site | null };
   alias: { largestTable: { name: string; properties: number; literalValues: number; dynamicReads: number; site: Site } | null };
   constantGuards: { count: number; sites: (Site & { value: string })[] };
   duplicateShapes: { functions: number; largestGroup: number; site: Site | null };
@@ -30,6 +32,7 @@ export interface JsMeasurements {
   exportsCount: number;
   dynamicCode: Site[];
   sourceMappingUrl: string | null;
+  folded: { seeds: string[]; guardsViaSeeds: number; decoded: number; samples: (Site & { value: string; alternatives: string[] })[] };
 }
 
 const LITERAL_CAP = 4096; // candidate lengths tracked per concatenation (REA cap is 256 candidates)
@@ -54,7 +57,8 @@ export function measure(ts: typeof tsType, job: JsJob): JsMeasurements {
     maxExpressionDepthSite: null,
     ternary: { maxAlternatives: 0, site: null, chainsOver16: 0, literalChains: 0, maxLiteralAlternatives: 0, literalSite: null },
     concat: { maxCandidates: 0, site: null, maxByteCharge: 0, byteSite: null },
-    getters: { total: 0, rings: [] },
+    getters: { total: 0, rings: [], dynamicReceiver: { count: 0, site: null } },
+    aliasChain: { length: 0, site: null },
     alias: { largestTable: null },
     constantGuards: { count: 0, sites: [] },
     duplicateShapes: { functions: 0, largestGroup: 0, site: null },
@@ -62,6 +66,7 @@ export function measure(ts: typeof tsType, job: JsJob): JsMeasurements {
     exportsCount: 0,
     dynamicCode: [],
     sourceMappingUrl: null,
+    folded: { seeds: [], guardsViaSeeds: 0, decoded: 0, samples: [] },
   };
 
   /** Literal alternatives of a ?: chain, or null when any leaf is not a literal. Iterative. */
@@ -109,6 +114,11 @@ export function measure(ts: typeof tsType, job: JsJob): JsMeasurements {
         }
         return undefined;
       }
+      if (ts.isBinaryExpression(n) && n.operatorToken.kind === K.BarToken) {
+        const l = unparen(n.left), r = unparen(n.right);
+        const tilde = (x: tsType.Node, y: tsType.Node) => ts.isPrefixUnaryExpression(x) && x.operator === K.TildeToken && ts.isIdentifier(unparen(x.operand)) && ts.isIdentifier(y) && (unparen(x.operand) as tsType.Identifier).text === y.text;
+        if (tilde(r, l) || tilde(l, r)) { ops++; return -1; }
+      }
       if (ts.isBinaryExpression(n)) {
         const a = ev(n.left, d + 1);
         const b = ev(n.right, d + 1);
@@ -144,6 +154,11 @@ export function measure(ts: typeof tsType, job: JsJob): JsMeasurements {
   const shapeCounts = new Map<string, { count: number; site: Site }>();
   const tables = new Map<string, { properties: number; literalValues: number; site: Site }>();
   const dynamicReads = new Map<string, number>();
+  const declCount = new Map<string, number>();
+  const topConsts: tsType.VariableDeclaration[] = [];
+  const pendingGuards: tsType.Node[] = [];
+  const pendingConcats: tsType.Node[] = [];
+  const chains = new Map<string, number>();
 
   interface Frame { node: tsType.Node; depth: number; exprDepth: number }
   const stack: Frame[] = [{ node: sf, depth: 0, exprDepth: 0 }];
@@ -173,23 +188,39 @@ export function measure(ts: typeof tsType, job: JsJob): JsMeasurements {
       }
       const g = constValue(node.condition);
       if (g !== undefined) recordGuard(node.condition, g);
+      else if (pendingGuards.length < 20_000) pendingGuards.push(node.condition);
     }
     if ((ts.isIfStatement(node) || ts.isWhileStatement(node) || ts.isDoStatement(node)) && node.expression) {
       const g = constValue(node.expression);
       if (g !== undefined) recordGuard(node.expression, g);
+      else if (pendingGuards.length < 20_000) pendingGuards.push(node.expression);
     }
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name)) declCount.set(node.name.text, (declCount.get(node.name.text) ?? 0) + 1);
+    if ((ts.isParameter(node) || ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node)) && node.name && ts.isIdentifier(node.name)) declCount.set(node.name.text, (declCount.get(node.name.text) ?? 0) + 2);
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && node.parent && ts.isVariableDeclarationList(node.parent) && (node.parent.flags & ts.NodeFlags.Const) && node.parent.parent && ts.isVariableStatement(node.parent.parent) && node.parent.parent.parent === sf) topConsts.push(node);
 
     // Concatenation of literal ternary chains: candidate product and REA's addition byte charge.
     if (ts.isBinaryExpression(node) && node.operatorToken.kind === K.PlusToken) {
       let p: tsType.Node | undefined = parent;
       while (p && ts.isParenthesizedExpression(p)) p = p.parent;
       const isRoot = !(p && ts.isBinaryExpression(p) && p.operatorToken.kind === K.PlusToken);
-      if (isRoot) measureConcat(node);
+      if (isRoot) { measureConcat(node); if (pendingConcats.length < 5_000) pendingConcats.push(node); }
     }
 
     if (ts.isGetAccessorDeclaration(node)) m.getters.total++;
     if (ts.isObjectLiteralExpression(node) || ts.isClassLike(node)) findGetterRings(node);
 
+    // Alias chain: v_i = cond ? v_{i-1}.p : v_{i-1}.q  (each link doubles the selector states).
+    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && ts.isConditionalExpression(unparen(node.initializer))) {
+      const c = unparen(node.initializer) as tsType.ConditionalExpression;
+      const baseOf = (x: tsType.Node) => { const u = unparen(x); return (ts.isPropertyAccessExpression(u) || ts.isElementAccessExpression(u)) && ts.isIdentifier(unparen(u.expression)) ? (unparen(u.expression) as tsType.Identifier).text : null; };
+      const bt = baseOf(c.whenTrue), bf = baseOf(c.whenFalse);
+      if (bt && bt === bf) {
+        const len = (chains.get(bt) ?? 0) + 1;
+        chains.set(node.name.text, len);
+        if (len > m.aliasChain.length) m.aliasChain = { length: len, site: site(node) };
+      }
+    }
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
       const init = unparen(node.initializer);
       if (ts.isObjectLiteralExpression(init) && init.properties.length >= 64) {
@@ -234,6 +265,30 @@ export function measure(ts: typeof tsType, job: JsJob): JsMeasurements {
     if (reads > 0 && (!m.alias.largestTable || t.properties > m.alias.largestTable.properties)) m.alias.largestTable = { name, properties: t.properties, literalValues: t.literalValues, dynamicReads: reads, site: t.site };
   }
   for (const v of shapeCounts.values()) if (v.count > m.duplicateShapes.largestGroup) { m.duplicateShapes.largestGroup = v.count; m.duplicateShapes.site = v.site; }
+  // Sound folding with finite seed candidates (single-declaration module consts only).
+  const folder = new Folder(ts);
+  if (!declCount.has('Math')) {
+    for (const d of topConsts) {
+      const name = (d.name as tsType.Identifier).text;
+      if (declCount.get(name) !== 1 || !d.initializer) continue;
+      const vals = folder.possible(d.initializer, new Map(), true);
+      if (vals && vals.length >= 1 && vals.length <= 4 && vals.every((v) => typeof v === 'number')) folder.candidates.set(name, vals);
+    }
+    m.folded.seeds = [...folder.candidates.keys()].slice(0, 20);
+    for (const g of pendingGuards) {
+      const r = folder.constant(g);
+      if (r && r.usesCandidates && typeof r.value !== 'string') { m.folded.guardsViaSeeds++; recordGuard(g, r.value); }
+    }
+    for (const c of pendingConcats) {
+      // A string that folds to at most 2 values (one per unresolved seed bit) is still a recovered result.
+      const r = folder.values(c);
+      if (r && r.values.length <= 2 && r.values.every((v) => typeof v === 'string') && containsConditional(c)) {
+        m.folded.decoded++;
+        const vs = (r.values as string[]).map((v) => v.slice(0, 200));
+        if (m.folded.samples.length < 20) m.folded.samples.push({ ...site(c), value: vs[0]!, alternatives: vs.slice(1) });
+      }
+    }
+  }
   m.imports = [...new Set(m.imports)].sort().slice(0, 200);
   // Last `//# sourceMappingURL=` comment, taken whole (inline maps can be megabytes); never truncated mid-escape.
   const at = job.text.lastIndexOf('sourceMappingURL=');
@@ -243,6 +298,12 @@ export function measure(ts: typeof tsType, job: JsJob): JsMeasurements {
     m.sourceMappingUrl = job.text.slice(at + 17, end) || null;
   }
   return m;
+
+  function containsConditional(n: tsType.Node): boolean {
+    const st = [n];
+    while (st.length) { const x = st.pop()!; if (ts.isConditionalExpression(x)) return true; x.forEachChild((c) => { st.push(c); }); }
+    return false;
+  }
 
   function recordGuard(expr: tsType.Node, value: number | boolean) {
     m.constantGuards.count++;
@@ -289,6 +350,7 @@ export function measure(ts: typeof tsType, job: JsJob): JsMeasurements {
   function findGetterRings(container: tsType.Node) {
     const members: readonly tsType.Node[] = ts.isObjectLiteralExpression(container) ? container.properties : (container as tsType.ClassLikeDeclaration).members;
     const edges = new Map<string, { to: string; node: tsType.Node }>();
+    let dyn = 0;
     for (const mem of members) {
       if (!ts.isGetAccessorDeclaration(mem) || !mem.body || mem.body.statements.length === 0) continue;
       const name = ts.isIdentifier(mem.name) || ts.isStringLiteral(mem.name) ? mem.name.text : null;
@@ -300,7 +362,11 @@ export function measure(ts: typeof tsType, job: JsJob): JsMeasurements {
       if (ts.isPropertyAccessExpression(e) && e.expression.kind === K.ThisKeyword) to = e.name.text;
       if (ts.isElementAccessExpression(e) && e.expression.kind === K.ThisKeyword && ts.isStringLiteral(e.argumentExpression)) to = e.argumentExpression.text;
       if (to) edges.set(name, { to, node: mem });
+      // get f(){ return this[k].f } : the receiver is chosen dynamically, so evaluators must expand every candidate.
+      const recv = ts.isPropertyAccessExpression(e) ? unparen(e.expression) : null;
+      if (recv && ts.isElementAccessExpression(recv) && recv.expression.kind === K.ThisKeyword && !ts.isStringLiteral(recv.argumentExpression) && !ts.isNumericLiteral(recv.argumentExpression)) dyn++;
     }
+    if (dyn > m.getters.dynamicReceiver.count) m.getters.dynamicReceiver = { count: dyn, site: site(container) };
     const done = new Set<string>();
     for (const start of edges.keys()) {
       if (done.has(start) || m.getters.rings.length >= 20) continue;

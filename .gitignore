@@ -6,3 +6,4 @@ benchmarks/results/*
 !benchmarks/results/*.json
 !benchmarks/results/*.md
 .anti-bla-tmp/
+scratch/
