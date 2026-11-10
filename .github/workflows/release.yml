@@ -1,6 +1,8 @@
 name: release
 
 # Publishes to npm when a GitHub Release is published (tag vX.Y.Z or X.Y.Z matching package.json).
+# Auth: npm trusted publishing (OIDC). No npm token is stored anywhere; provenance is generated automatically.
+# One-time setup: see docs/releasing.md.
 on:
   release:
     types: [published]
@@ -13,7 +15,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # npm provenance (and npm trusted publishing, if configured)
+  id-token: write # required: OIDC token exchanged with npm (trusted publishing + provenance)
 
 concurrency:
   group: release
@@ -34,7 +36,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: npm
 
-      - name: Upgrade npm (trusted publishing needs npm >= 11.5.1)
+      - name: Upgrade npm (trusted publishing needs npm >= 11.5.1, Node >= 22.14)
         run: npm install --global npm@latest
 
       - name: Check versions agree with the release tag
@@ -62,11 +64,9 @@ jobs:
 
       - name: Publish (dry run)
         if: github.event_name == 'workflow_dispatch' && inputs.dry_run
-        run: npm publish --dry-run --provenance --access public
+        run: npm publish --dry-run --access public
 
       - name: Publish
         if: github.event_name == 'release' || !inputs.dry_run
-        run: npm publish --provenance --access public
-        env:
-          # Leave the secret unset once npm trusted publishing is configured; npm then uses OIDC.
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        # No NODE_AUTH_TOKEN: the npm CLI detects GitHub OIDC and exchanges it for a short-lived publish token.
+        run: npm publish --access public

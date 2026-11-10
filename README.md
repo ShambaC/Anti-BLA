@@ -200,7 +200,7 @@ Use it only on software you own, have permission to analyze, or that was publish
 
 ## Documentation
 
-[Architecture](docs/architecture.md) · [Threat model](docs/threat-model.md) · [Tool contracts](docs/tool-contracts.md) · [Compatibility (pinned REA/BLA)](docs/compatibility.md) · [Limitation matrix](docs/limitation-matrix.md) · [Benchmark methodology](docs/benchmark-methodology.md) · [Development](docs/development.md) · [Skill](skills/anti-bla/SKILL.md)
+[Architecture](docs/architecture.md) · [Threat model](docs/threat-model.md) · [Tool contracts](docs/tool-contracts.md) · [Compatibility (pinned REA/BLA)](docs/compatibility.md) · [Limitation matrix](docs/limitation-matrix.md) · [Benchmark methodology](docs/benchmark-methodology.md) · [Development](docs/development.md) · [Releasing](docs/releasing.md) · [Skill](skills/anti-bla/SKILL.md)
 
 ## Development
 
